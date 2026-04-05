@@ -1,0 +1,153 @@
+<h2>Section 5: Admin Dashboard</h2>
+<p class="subtitle">Two views: everyone sees the project gallery. Admins see governance & usage.</p>
+
+<div style="margin-bottom: 24px;">
+  <h3>Page Structure</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden;">
+      <div style="background: #1f6feb; padding: 10px 16px; font-weight: bold; font-size: 13px;">ALL EMPLOYEES</div>
+      <div style="padding: 16px;">
+        <div style="margin-bottom: 12px;">
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">Project Gallery</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">Browse all company projects. Search, filter by folder/author/status. Click to open live URL.</p>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">My Projects</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">Projects I created. Quick access to URLs, deploy history, logs.</p>
+        </div>
+        <div>
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">Folders</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">Nested folder tree. Teams can organize by department, project type, etc.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden;">
+      <div style="background: #f0883e; padding: 10px 16px; font-weight: bold; font-size: 13px; color: #0d1117;">ADMIN ONLY</div>
+      <div style="padding: 16px;">
+        <div style="margin-bottom: 12px;">
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">Usage & Analytics</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">Deploys, API calls, DB usage, costs — per project, per user, over time. Charts + tables.</p>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">Secrets Vault</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">Add/revoke API keys. See which projects use which secrets. Rotate keys.</p>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">User Management</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">Invite/remove employees. Set roles (admin/member). View per-user activity.</p>
+        </div>
+        <div>
+          <h4 style="color: #58a6ff; margin: 0 0 4px 0;">Agent Monitor</h4>
+          <p style="font-size: 13px; color: #8b949e; margin: 0;">All running agents. Status, last run, error rate, logs. Pause/resume/kill.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard Wireframe -->
+<div class="mockup">
+  <div class="mockup-header">Project Gallery — Wireframe (supports RTL/Hebrew)</div>
+  <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.6; padding: 20px; background: #0d1117; color: #e6edf3;">
+<pre style="margin:0; white-space: pre; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────────────────┐
+│  ┌──────┐                                                 🌐 EN | HE  │
+│  │ LOGO │   Project Gallery    My Projects    Agents    ⚙ Admin       │
+│  └──────┘                                                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  🔍 Search projects...                    Filter: [All ▾] [Live ▾]     │
+│                                                                         │
+│  ┌─── 📁 Marketing ──────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐   │  │
+│  │  │ 🟢 Sales Dash    │  │ 🟢 Competitor    │  │ 🟡 Campaign    │   │  │
+│  │  │                  │  │    Tracker       │  │    Builder     │   │  │
+│  │  │ Sarah · 2h ago   │  │ Mike · 3d ago    │  │ Dana · 1w ago  │   │  │
+│  │  │ Next.js · DB     │  │ Static           │  │ React · Agent  │   │  │
+│  │  │ [Open] [Details] │  │ [Open] [Details] │  │ [Open][Details]│   │  │
+│  │  └──────────────────┘  └──────────────────┘  └────────────────┘   │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌─── 📁 Engineering ────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  ┌──────────────────┐  ┌──────────────────┐                       │  │
+│  │  │ 🟢 API Monitor   │  │ 🔴 Legacy        │                       │  │
+│  │  │                  │  │    Migration     │                       │  │
+│  │  │ Yoni · 5h ago    │  │ Amit · 2w ago    │                       │  │
+│  │  │ Next.js · Agent  │  │ Static           │                       │  │
+│  │  │ [Open] [Details] │  │ [Open] [Details] │                       │  │
+│  │  └──────────────────┘  └──────────────────┘                       │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">Admin: Usage Analytics — Wireframe</div>
+  <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.6; padding: 20px; background: #0d1117; color: #e6edf3;">
+<pre style="margin:0; white-space: pre; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Usage Overview — Last 30 Days                          [Export CSV]    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐  │
+│  │  47 Deploys  │  │ 12,340 API   │  │  8 Active    │  │  $23.50    │  │
+│  │  ↑12% vs prev│  │   Calls      │  │  Agents      │  │  Est. Cost │  │
+│  │              │  │  ↑34% vs prev│  │  2 erroring  │  │  ↑8%       │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘  │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  Deploys Over Time                                              │    │
+│  │  █                                                              │    │
+│  │  █ █                        █                                   │    │
+│  │  █ █   █                  █ █ █                                  │    │
+│  │  █ █ █ █ █   █   █ █   █ █ █ █ █   █                           │    │
+│  │  █ █ █ █ █ █ █ █ █ █ █ █ █ █ █ █ █ █ █ █                      │    │
+│  │  ─────────────────────────────────────────                      │    │
+│  │  Week 1      Week 2      Week 3      Week 4                    │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│  Top Projects by Usage                                                  │
+│  ┌────────────────────┬──────────┬───────────┬──────────┬──────────┐   │
+│  │ Project            │ Deploys  │ API Calls │ DB Size  │ Cost     │   │
+│  ├────────────────────┼──────────┼───────────┼──────────┼──────────┤   │
+│  │ sales-dashboard    │ 12       │ 4,230     │ 45 MB    │ $8.20    │   │
+│  │ daily-report-bot   │ 3        │ 3,100     │ —        │ $6.10    │   │
+│  │ competitor-tracker  │ 8        │ 2,890     │ 120 MB   │ $5.40    │   │
+│  └────────────────────┴──────────┴───────────┴──────────┴──────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <h3>RTL / Hebrew Support</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #7c5cfc; margin-top: 0;">Dashboard (your product)</h4>
+      <ul style="font-size: 13px; color: #8b949e; margin: 0; padding-left: 16px;">
+        <li>Built with <code>next-intl</code> for i18n</li>
+        <li>Language toggle: EN | HE in header</li>
+        <li><code>dir="rtl"</code> on <code>&lt;html&gt;</code> when Hebrew</li>
+        <li>Tailwind CSS <code>rtl:</code> variant for layout flips</li>
+        <li>All labels, dates, numbers localized</li>
+      </ul>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #7c5cfc; margin-top: 0;">Published apps (employee-built)</h4>
+      <ul style="font-size: 13px; color: #8b949e; margin: 0; padding-left: 16px;">
+        <li>CLAUDE.md includes RTL instruction: <em>"When user writes in Hebrew, generate RTL-compatible code with dir=rtl"</em></li>
+        <li>Auth login page supports Hebrew</li>
+        <li>Not enforced — employees choose per-project</li>
+      </ul>
+    </div>
+  </div>
+</div>

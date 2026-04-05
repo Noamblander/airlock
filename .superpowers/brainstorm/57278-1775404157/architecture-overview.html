@@ -1,0 +1,87 @@
+<h2>Section 1: High-Level Architecture</h2>
+<p class="subtitle">The platform has 4 layers. Here's how they connect.</p>
+
+<div class="mockup">
+  <div class="mockup-header">System Architecture</div>
+  <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.8; padding: 24px; background: #0d1117; color: #e6edf3;">
+<pre style="margin:0; white-space: pre; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────────────┐
+│                        CREATION LAYER                               │
+│                                                                     │
+│   ┌──────────────┐     ┌──────────────┐     ┌──────────────┐       │
+│   │  Claude.ai   │     │ Claude Code  │     │ Claude API   │       │
+│   │  (web users) │     │ (tech users) │     │  (future)    │       │
+│   └──────┬───────┘     └──────┬───────┘     └──────┬───────┘       │
+│          │                    │                     │               │
+│          │   reads CLAUDE.md (conventions, rules, team info)        │
+│          │   calls MCP tools (deploy, secrets, db, status)          │
+│          └────────────┬───────┘─────────────────────┘               │
+└───────────────────────┼─────────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     PLATFORM LAYER (your product)                   │
+│                                                                     │
+│   ┌─────────────────────────────────────────────────────────┐       │
+│   │              Next.js App on Vercel                      │       │
+│   │                                                         │       │
+│   │   /api/mcp/*        → MCP server endpoints              │       │
+│   │   /api/deploy       → Deployment orchestrator           │       │
+│   │   /api/secrets      → Credential vault                  │       │
+│   │   /api/projects     → Project CRUD + metadata           │       │
+│   │   /api/usage        → Analytics + billing               │       │
+│   │   /dashboard/*      → Admin UI (React)                  │       │
+│   │                                                         │       │
+│   └─────────────────────────┬───────────────────────────────┘       │
+└─────────────────────────────┼───────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     INFRASTRUCTURE LAYER                            │
+│                                                                     │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐         │
+│   │   Supabase   │  │    Vercel    │  │  Vault / KMS     │         │
+│   │              │  │              │  │                   │         │
+│   │ • PostgreSQL │  │ • Hosts each │  │ • Encrypts API   │         │
+│   │ • Auth (SSO) │  │   published  │  │   keys (OpenAI,  │         │
+│   │ • Storage    │  │   project    │  │   Stripe, etc.)  │         │
+│   │ • Realtime   │  │ • Auto SSL   │  │ • Per-tenant     │         │
+│   │ • Edge Funcs │  │ • Edge CDN   │  │   isolation      │         │
+│   │ • RLS        │  │ • Cron jobs  │  │                   │         │
+│   └──────────────┘  └──────────────┘  └──────────────────┘         │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      PUBLISHED APPS LAYER                           │
+│                                                                     │
+│   app1.company.vercel.app   app2.company.vercel.app                 │
+│   agent-bot.company.vercel.app   dashboard-q4.company.vercel.app    │
+│                                                                     │
+│   All behind Supabase Auth — only company employees can access      │
+└─────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <h3>Key Design Decisions</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #7c5cfc; margin-top: 0;">Single Codebase</h4>
+      <p style="font-size: 14px; color: #8b949e;">MCP server + admin dashboard = one Next.js app. Shared DB, shared auth, shared types. Deploy once.</p>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #7c5cfc; margin-top: 0;">Project = Vercel Project</h4>
+      <p style="font-size: 14px; color: #8b949e;">Each published app is its own Vercel project. Isolated deployments, independent URLs, separate logs.</p>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #7c5cfc; margin-top: 0;">Tenant = Supabase Row</h4>
+      <p style="font-size: 14px; color: #8b949e;">Multi-tenancy via Row-Level Security. Each company is a tenant. All data isolated at the DB level. Ready for SaaS from day one.</p>
+    </div>
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px;">
+      <h4 style="color: #7c5cfc; margin-top: 0;">Secrets Never in Code</h4>
+      <p style="font-size: 14px; color: #8b949e;">API keys stored encrypted in Supabase. MCP server injects them at deploy time as Vercel env vars. Claude never sees raw secrets.</p>
+    </div>
+  </div>
+</div>

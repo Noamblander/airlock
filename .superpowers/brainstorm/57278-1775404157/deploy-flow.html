@@ -1,0 +1,100 @@
+<h2>Section 4: Deploy Flow</h2>
+<p class="subtitle">Step-by-step: employee says "publish this" in Claude → live app on secure URL.</p>
+
+<div class="mockup">
+  <div class="mockup-header">The "Publish This" Sequence</div>
+  <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.8; padding: 24px; background: #0d1117; color: #e6edf3;">
+<pre style="margin:0; white-space: pre; overflow-x: auto;">
+Employee                Claude                  MCP Server (Platform API)           Vercel / Supabase
+   │                      │                            │                                │
+   │  "Build me a sales   │                            │                                │
+   │   dashboard and      │                            │                                │
+   │   publish it"        │                            │                                │
+   │─────────────────────►│                            │                                │
+   │                      │                            │                                │
+   │                      │  1. Generates code         │                                │
+   │                      │     (Next.js app)          │                                │
+   │                      │                            │                                │
+   │                      │  2. get_available_secrets() │                                │
+   │                      │───────────────────────────►│                                │
+   │                      │  ["OPENAI_API_KEY",        │                                │
+   │                      │   "SUPABASE_URL", ...]     │                                │
+   │                      │◄───────────────────────────│                                │
+   │                      │                            │                                │
+   │                      │  3. provision_database({   │                                │
+   │                      │     tables: [leads, ...]}) │                                │
+   │                      │───────────────────────────►│  CREATE SCHEMA proj_sales_dash │
+   │                      │                            │───────────────────────────────►│
+   │                      │  { schema: "proj_...",     │  ◄─── schema created           │
+   │                      │    connected: true }       │                                │
+   │                      │◄───────────────────────────│                                │
+   │                      │                            │                                │
+   │                      │  4. deploy({               │                                │
+   │                      │     name: "sales-dash",    │                                │
+   │                      │     files: {...},          │                                │
+   │                      │     env_vars: [...]  })    │                                │
+   │                      │───────────────────────────►│                                │
+   │                      │                            │  a. Create/update Vercel proj  │
+   │                      │                            │───────────────────────────────►│
+   │                      │                            │                                │
+   │                      │                            │  b. Decrypt secrets from vault │
+   │                      │                            │     Inject as Vercel env vars  │
+   │                      │                            │───────────────────────────────►│
+   │                      │                            │                                │
+   │                      │                            │  c. Push files via Vercel API  │
+   │                      │                            │───────────────────────────────►│
+   │                      │                            │                                │
+   │                      │                            │  d. Log to usage_events        │
+   │                      │                            │  e. Log to deployments         │
+   │                      │                            │  f. Add auth middleware        │
+   │                      │                            │     (Supabase Auth check)      │
+   │                      │                            │───────────────────────────────►│
+   │                      │                            │                                │
+   │                      │  { url: "sales-dash.       │  ◄─── deploy complete          │
+   │                      │    acme.vercel.app",       │                                │
+   │                      │    status: "live" }        │                                │
+   │                      │◄───────────────────────────│                                │
+   │                      │                            │                                │
+   │  "Your dashboard is  │                            │                                │
+   │   live! Here's the   │                            │                                │
+   │   link: ..."         │                            │                                │
+   │◄─────────────────────│                            │                                │
+   │                      │                            │                                │
+</pre>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <h3>Key Steps Explained</h3>
+  <div style="display: grid; gap: 12px; margin-top: 12px;">
+
+    <div style="background: #161b22; border-left: 3px solid #238636; padding: 16px; border-radius: 0 8px 8px 0;">
+      <h4 style="margin-top: 0; color: #58a6ff;">Step 4f: Auth Middleware Injection</h4>
+      <p style="font-size: 13px; color: #8b949e; margin: 0;">
+        The platform <strong>automatically injects</strong> authentication middleware into every deployed app. This is a Vercel Edge Middleware that checks if the visitor has a valid Supabase Auth session with the correct tenant. No company employee published app is ever publicly accessible — this is enforced at the platform level, not by the app code.
+      </p>
+    </div>
+
+    <div style="background: #161b22; border-left: 3px solid #f0883e; padding: 16px; border-radius: 0 8px 8px 0;">
+      <h4 style="margin-top: 0; color: #58a6ff;">File Snapshot</h4>
+      <p style="font-size: 13px; color: #8b949e; margin: 0;">
+        Every deployment stores a snapshot of the source files in the <code>deployments</code> table. This enables: rollback to any version, Claude can <code>get_project()</code> to read and modify existing apps, and the admin dashboard shows full deploy history with diffs.
+      </p>
+    </div>
+
+    <div style="background: #161b22; border-left: 3px solid #a371f7; padding: 16px; border-radius: 0 8px 8px 0;">
+      <h4 style="margin-top: 0; color: #58a6ff;">Update Flow (Existing Projects)</h4>
+      <p style="font-size: 13px; color: #8b949e; margin: 0;">
+        When an employee says "update the sales dashboard", Claude calls <code>get_project()</code> to fetch the current source, makes modifications, then calls <code>deploy()</code> again. The platform detects the existing Vercel project and does an update deployment instead of creating a new one. Same URL, new version.
+      </p>
+    </div>
+
+    <div style="background: #161b22; border-left: 3px solid #1f6feb; padding: 16px; border-radius: 0 8px 8px 0;">
+      <h4 style="margin-top: 0; color: #58a6ff;">Agent Deploy (Variant)</h4>
+      <p style="font-size: 13px; color: #8b949e; margin: 0;">
+        For agents, the flow is similar but instead of <code>deploy()</code>, Claude calls <code>schedule_agent()</code>. The platform deploys the agent code as a Vercel Serverless Function + Cron Job (or Supabase Edge Function for webhook triggers). The agent entry in the DB tracks schedule, status, and error history.
+      </p>
+    </div>
+
+  </div>
+</div>
