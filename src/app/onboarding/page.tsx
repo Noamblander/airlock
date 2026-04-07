@@ -62,7 +62,7 @@ const CLOUD_FIELD_LABELS: Record<CloudProvider, { teamId: string; token: string;
 const DB_PROVIDERS: { value: DbProvider; label: string; placeholder: string }[] = [
   { value: "postgres", label: "PostgreSQL", placeholder: "postgresql://user:pass@host:5432/db" },
   { value: "mysql", label: "MySQL", placeholder: "mysql://user:pass@host:3306/db" },
-  { value: "mongodb", label: "MongoDB", placeholder: "mongodb+srv://user:pass@cluster.mongodb.net/db" },
+  { value: "mongodb", label: "MongoDB", placeholder: "mongodb+srv://..." },
 ];
 
 export default function OnboardingPage() {
