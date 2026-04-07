@@ -25,23 +25,6 @@ export type McpError = {
   line?: number;
 };
 
-export type VercelFile = {
-  file: string;
-  data: string; // base64 encoded
-  encoding: "base64";
-};
-
-export type VercelDeploymentResponse = {
-  id: string;
-  url: string;
-  readyState: string;
-};
-
-export type VercelProjectResponse = {
-  id: string;
-  name: string;
-};
-
 export type TenantConfig = {
   platformUrl: string;
   tenantSlug: string;

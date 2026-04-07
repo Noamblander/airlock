@@ -42,9 +42,9 @@ export default async function ProjectDetailPage({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {project.vercelUrl && (
+          {project.deployUrl && (
             <a
-              href={`https://${project.vercelUrl}`}
+              href={project.deployUrl.startsWith("https://") ? project.deployUrl : `https://${project.deployUrl}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-accent"

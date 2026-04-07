@@ -8,8 +8,24 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+type CloudProvider = "vercel" | "aws" | "cloudflare" | "netlify";
+
+const CLOUD_FIELD_LABELS: Record<CloudProvider, { teamId: string; token: string; teamIdPlaceholder: string }> = {
+  vercel: { teamId: "Team ID", token: "API Token", teamIdPlaceholder: "team_..." },
+  aws: { teamId: "AWS Account ID", token: "Access Key / Token", teamIdPlaceholder: "123456789012" },
+  cloudflare: { teamId: "Account ID", token: "API Token", teamIdPlaceholder: "abc123..." },
+  netlify: { teamId: "Team Slug", token: "Personal Access Token", teamIdPlaceholder: "my-team" },
+};
 
 export default function SettingsPage() {
   const { data: tenant, mutate } = useSWR("/api/tenant", fetcher);
@@ -24,12 +40,12 @@ export default function SettingsPage() {
     const body: Record<string, string> = {};
 
     const name = formData.get("name") as string;
-    const vercelTeamId = formData.get("vercelTeamId") as string;
-    const vercelApiToken = formData.get("vercelApiToken") as string;
+    const cloudTeamId = formData.get("cloudTeamId") as string;
+    const cloudApiToken = formData.get("cloudApiToken") as string;
 
     if (name) body.name = name;
-    if (vercelTeamId) body.vercelTeamId = vercelTeamId;
-    if (vercelApiToken) body.vercelApiToken = vercelApiToken;
+    if (cloudTeamId) body.cloudTeamId = cloudTeamId;
+    if (cloudApiToken) body.cloudApiToken = cloudApiToken;
 
     await fetch("/api/tenant", {
       method: "PATCH",
@@ -41,6 +57,26 @@ export default function SettingsPage() {
     mutate();
   };
 
+  const handleCloudProviderChange = async (value: string | null) => {
+    if (!value) return;
+    await fetch("/api/tenant", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cloudProvider: value }),
+    });
+    mutate();
+  };
+
+  const handleDbProviderChange = async (value: string | null) => {
+    if (!value) return;
+    await fetch("/api/tenant", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dbProvider: value === "none" ? null : value }),
+    });
+    mutate();
+  };
+
   const handleCopyClaudeMd = () => {
     if (claudeMd?.content) {
       navigator.clipboard.writeText(claudeMd.content);
@@ -48,6 +84,9 @@ export default function SettingsPage() {
   };
 
   if (!tenant) return null;
+
+  const cloudProvider = (tenant.cloudProvider || "vercel") as CloudProvider;
+  const cloudFields = CLOUD_FIELD_LABELS[cloudProvider];
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -87,30 +126,46 @@ export default function SettingsPage() {
               <Input value={tenant.slug} disabled />
             </div>
             <Separator />
+
             <div className="space-y-2">
-              <Label htmlFor="vercelTeamId">Vercel Team ID</Label>
+              <Label>Cloud Provider</Label>
+              <Select value={cloudProvider} onValueChange={handleCloudProviderChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vercel">Vercel</SelectItem>
+                  <SelectItem value="aws">AWS (Amplify)</SelectItem>
+                  <SelectItem value="cloudflare">Cloudflare Pages</SelectItem>
+                  <SelectItem value="netlify">Netlify</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cloudTeamId">{cloudFields.teamId}</Label>
               <Input
-                id="vercelTeamId"
-                name="vercelTeamId"
-                defaultValue={tenant.vercelTeamId || ""}
-                placeholder="team_..."
+                id="cloudTeamId"
+                name="cloudTeamId"
+                defaultValue={tenant.cloudTeamId || ""}
+                placeholder={cloudFields.teamIdPlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="vercelApiToken">
-                Vercel API Token{" "}
-                {tenant.hasVercelToken && (
+              <Label htmlFor="cloudApiToken">
+                {cloudFields.token}{" "}
+                {tenant.hasCloudToken && (
                   <Badge variant="secondary" className="ml-2">Connected</Badge>
                 )}
               </Label>
               <Input
-                id="vercelApiToken"
-                name="vercelApiToken"
+                id="cloudApiToken"
+                name="cloudApiToken"
                 type="password"
                 placeholder={
-                  tenant.hasVercelToken
+                  tenant.hasCloudToken
                     ? "Enter new token to replace"
-                    : "Enter Vercel API token"
+                    : "Enter API token"
                 }
               />
             </div>
@@ -118,6 +173,34 @@ export default function SettingsPage() {
               {saving ? "Saving..." : "Save Settings"}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Database</CardTitle>
+          <CardDescription>
+            Database for your team&apos;s deployed apps
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Database Type</Label>
+            <Select value={tenant.dbProvider || "none"} onValueChange={handleDbProviderChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="postgres">PostgreSQL</SelectItem>
+                <SelectItem value="mysql">MySQL</SelectItem>
+                <SelectItem value="mongodb">MongoDB</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The database connection string is stored as a secret named DATABASE_URL. Manage it in the Secrets page.
+          </p>
         </CardContent>
       </Card>
 

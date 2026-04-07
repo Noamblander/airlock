@@ -10,8 +10,12 @@ const onboardingSchema = z.object({
   companyName: z.string().min(1),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
   domain: z.string().min(1),
-  vercelTeamId: z.string().optional(),
-  vercelApiToken: z.string().optional(),
+  cloudProvider: z.enum(["vercel", "aws", "cloudflare", "netlify"]).default("vercel"),
+  cloudTeamId: z.string().optional(),
+  cloudApiToken: z.string().optional(),
+  cloudConfig: z.record(z.string(), z.unknown()).optional(),
+  dbProvider: z.enum(["postgres", "mysql", "mongodb"]).optional(),
+  dbConfig: z.record(z.string(), z.unknown()).optional(),
   secrets: z
     .array(
       z.object({
@@ -53,8 +57,8 @@ export async function POST(request: Request) {
 
     if (!tenant) {
       // Create new tenant
-      const encryptedToken = body.vercelApiToken
-        ? encrypt(body.vercelApiToken).encrypted
+      const encryptedToken = body.cloudApiToken
+        ? encrypt(body.cloudApiToken).encrypted
         : null;
 
       [tenant] = await db
@@ -63,8 +67,12 @@ export async function POST(request: Request) {
           name: body.companyName,
           slug: body.slug,
           domain: body.domain,
-          vercelTeamId: body.vercelTeamId ?? null,
-          vercelApiToken: encryptedToken,
+          cloudProvider: body.cloudProvider,
+          cloudTeamId: body.cloudTeamId ?? null,
+          cloudApiToken: encryptedToken,
+          cloudConfig: body.cloudConfig ?? {},
+          dbProvider: body.dbProvider ?? null,
+          dbConfig: body.dbConfig ?? {},
         })
         .returning();
     }

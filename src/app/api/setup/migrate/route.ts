@@ -33,6 +33,14 @@ export async function POST(request: Request) {
     const rlsSql = readFileSync(rlsPath, "utf-8");
     await sql.unsafe(rlsSql);
 
+    // Run provider abstraction migration
+    const providerPath = join(
+      process.cwd(),
+      "supabase/migrations/0003_provider_abstraction.sql"
+    );
+    const providerSql = readFileSync(providerPath, "utf-8");
+    await sql.unsafe(providerSql);
+
     await sql.end();
 
     return NextResponse.json({ success: true });

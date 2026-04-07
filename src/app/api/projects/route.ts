@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       slug: projects.slug,
       description: projects.description,
       framework: projects.framework,
-      vercelUrl: projects.vercelUrl,
+      deployUrl: projects.deployUrl,
       status: projects.status,
       authorName: users.name,
       createdBy: projects.createdBy,

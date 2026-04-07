@@ -10,14 +10,10 @@ import {
 import { eq, and, inArray } from "drizzle-orm";
 import { scanForSecrets } from "@/lib/secrets/scanner";
 import { decrypt } from "@/lib/secrets/vault";
-import {
-  createOrGetVercelProject,
-  createDeployment,
-  setEnvironmentVariables,
-  filesToVercelFormat,
-} from "./vercel";
+import { getProvider } from "./providers/registry";
 import { injectAuthMiddleware } from "./injector";
 import type { DeployPayload, DeployResult, McpError } from "./types";
+import type { CloudProvider, ProviderConfig } from "./providers/types";
 
 const MAX_PAYLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
@@ -30,7 +26,6 @@ export async function orchestrateDeploy(
   payload: DeployPayload,
   ctx: OrchestratorContext
 ): Promise<DeployResult | McpError> {
-  // 1. Get tenant config
   const [tenant] = await db
     .select()
     .from(tenants)
@@ -41,22 +36,27 @@ export async function orchestrateDeploy(
     return { error: true, code: "TENANT_NOT_FOUND", message: "Tenant not found" };
   }
 
-  if (!tenant.vercelApiToken || !tenant.vercelTeamId) {
+  if (!tenant.cloudApiToken || !tenant.cloudTeamId) {
     return {
       error: true,
-      code: "VERCEL_NOT_CONFIGURED",
-      message: "Vercel is not configured. Connect Vercel in admin settings first.",
+      code: "CLOUD_NOT_CONFIGURED",
+      message: `Cloud provider (${tenant.cloudProvider}) is not configured. Connect it in admin settings first.`,
     };
   }
 
-  const vercelToken = decrypt(tenant.vercelApiToken);
-  const vercelTeamId = tenant.vercelTeamId;
+  const cloudProvider = (tenant.cloudProvider || "vercel") as CloudProvider;
+  const provider = getProvider(cloudProvider);
+  const providerConfig: ProviderConfig = {
+    token: decrypt(tenant.cloudApiToken),
+    teamId: tenant.cloudTeamId,
+    region: (tenant.cloudConfig as Record<string, unknown>)?.region as string | undefined,
+    extra: tenant.cloudConfig as Record<string, unknown> | undefined,
+  };
 
-  // 2. Resolve files
+  // Resolve files
   let files: Record<string, string>;
 
   if (payload.update_files) {
-    // Partial update — merge with existing snapshot
     const slug = payload.project_name.toLowerCase().replace(/\s+/g, "-");
     const [existingProject] = await db
       .select()
@@ -92,7 +92,7 @@ export async function orchestrateDeploy(
     };
   }
 
-  // 3. Validate payload size
+  // Validate payload size
   const totalSize = Object.values(files).reduce(
     (sum, content) => sum + Buffer.byteLength(content, "utf8"),
     0
@@ -105,7 +105,7 @@ export async function orchestrateDeploy(
     };
   }
 
-  // 4. Scan for hardcoded secrets
+  // Scan for hardcoded secrets
   const scanResults = scanForSecrets(files);
   if (scanResults.length > 0) {
     const first = scanResults[0];
@@ -118,33 +118,37 @@ export async function orchestrateDeploy(
     };
   }
 
-  // 5. Inject auth middleware
+  // Inject auth middleware
   const tenantConfig = {
     platformUrl: process.env.NEXT_PUBLIC_APP_URL!,
     tenantSlug: tenant.slug,
     jwtSecret: process.env.JWT_SECRET!,
   };
-  const filesWithAuth = injectAuthMiddleware(files, tenantConfig, payload.framework);
+  const filesWithAuth = injectAuthMiddleware(
+    files,
+    tenantConfig,
+    payload.framework,
+    cloudProvider
+  );
 
-  // 6. Create or get Vercel project
+  // Create or get project via provider
   const projectSlug = payload.project_name.toLowerCase().replace(/\s+/g, "-");
-  let vercelProject;
+  let providerProject;
   try {
-    vercelProject = await createOrGetVercelProject(
+    providerProject = await provider.createProject(
       projectSlug,
-      vercelTeamId,
-      vercelToken,
-      payload.framework
+      payload.framework,
+      providerConfig
     );
   } catch (err) {
     return {
       error: true,
-      code: "VERCEL_PROJECT_FAILED",
-      message: `Failed to create Vercel project: ${err instanceof Error ? err.message : "Unknown error"}`,
+      code: "PROJECT_CREATE_FAILED",
+      message: `Failed to create project on ${cloudProvider}: ${err instanceof Error ? err.message : "Unknown error"}`,
     };
   }
 
-  // 7. Decrypt and set env vars
+  // Decrypt and set env vars
   if (payload.env_vars && payload.env_vars.length > 0) {
     const secretRecords = await db
       .select()
@@ -156,7 +160,6 @@ export async function orchestrateDeploy(
         )
       );
 
-    // Check for missing secrets
     const foundNames = secretRecords.map((s) => s.name);
     const missing = payload.env_vars.filter((v) => !foundNames.includes(v));
     if (missing.length > 0) {
@@ -174,12 +177,7 @@ export async function orchestrateDeploy(
     }));
 
     try {
-      await setEnvironmentVariables(
-        vercelProject.id,
-        envVars,
-        vercelTeamId,
-        vercelToken
-      );
+      await provider.setEnvVars(providerProject.id, envVars, providerConfig);
     } catch (err) {
       return {
         error: true,
@@ -189,16 +187,18 @@ export async function orchestrateDeploy(
     }
   }
 
-  // 8. Create Vercel deployment
-  let vercelDeployment;
+  // Deploy via provider
+  let providerDeployment;
   try {
-    const vercelFiles = filesToVercelFormat(filesWithAuth);
-    vercelDeployment = await createDeployment(
-      vercelProject.id,
-      vercelFiles,
-      vercelTeamId,
-      vercelToken,
-      payload.framework
+    const providerFiles = Object.entries(filesWithAuth).map(([path, content]) => ({
+      path,
+      content,
+    }));
+    providerDeployment = await provider.deploy(
+      providerProject.id,
+      providerFiles,
+      payload.framework,
+      providerConfig
     );
   } catch (err) {
     return {
@@ -208,7 +208,9 @@ export async function orchestrateDeploy(
     };
   }
 
-  // 9. Upsert project record
+  const deployUrl = provider.getDeployUrl(providerDeployment);
+
+  // Upsert project record
   const [existingProject] = await db
     .select()
     .from(projects)
@@ -225,8 +227,8 @@ export async function orchestrateDeploy(
     await db
       .update(projects)
       .set({
-        vercelProjectId: vercelProject.id,
-        vercelUrl: vercelDeployment.url,
+        providerProjectId: providerProject.id,
+        deployUrl: providerDeployment.url,
         status: "live",
         framework: payload.framework,
         description: payload.description || existingProject.description,
@@ -243,8 +245,8 @@ export async function orchestrateDeploy(
         slug: projectSlug,
         description: payload.description || "",
         framework: payload.framework,
-        vercelProjectId: vercelProject.id,
-        vercelUrl: vercelDeployment.url,
+        providerProjectId: providerProject.id,
+        deployUrl: providerDeployment.url,
         status: "live",
         createdBy: ctx.userId,
       })
@@ -252,21 +254,21 @@ export async function orchestrateDeploy(
     projectId = newProject.id;
   }
 
-  // 10. Store deployment with files_snapshot
+  // Store deployment
   const [deployment] = await db
     .insert(deployments)
     .values({
       tenantId: ctx.tenantId,
       projectId,
-      vercelDeployId: vercelDeployment.id,
+      providerDeployId: providerDeployment.id,
       status: "success",
-      url: vercelDeployment.url,
-      filesSnapshot: files, // original files without injected middleware
+      url: deployUrl,
+      filesSnapshot: files,
       triggeredBy: ctx.userId,
     })
     .returning();
 
-  // 11. Store project_secrets associations
+  // Store project_secrets associations
   if (payload.env_vars && payload.env_vars.length > 0) {
     const secretRecords = await db
       .select()
@@ -278,7 +280,6 @@ export async function orchestrateDeploy(
         )
       );
 
-    // Delete existing associations and re-create
     await db
       .delete(projectSecrets)
       .where(eq(projectSecrets.projectId, projectId));
@@ -294,7 +295,7 @@ export async function orchestrateDeploy(
     }
   }
 
-  // 12. Log usage_event
+  // Log usage event
   await db.insert(usageEvents).values({
     tenantId: ctx.tenantId,
     projectId,
@@ -302,13 +303,14 @@ export async function orchestrateDeploy(
     eventType: "deploy",
     metadata: {
       framework: payload.framework,
+      cloudProvider,
       fileCount: Object.keys(files).length,
-      totalSize: totalSize,
+      totalSize,
     },
   });
 
   return {
-    url: `https://${vercelDeployment.url}`,
+    url: deployUrl,
     status: "live",
     projectId,
     deploymentId: deployment.id,

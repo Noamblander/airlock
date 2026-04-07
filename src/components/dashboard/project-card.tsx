@@ -8,7 +8,7 @@ type ProjectCardProps = {
   description: string | null;
   framework: string;
   status: string;
-  vercelUrl: string | null;
+  deployUrl: string | null;
   authorName: string | null;
   updatedAt: string | null;
 };
@@ -19,7 +19,7 @@ export function ProjectCard({
   description,
   framework,
   status,
-  vercelUrl,
+  deployUrl,
   authorName,
   updatedAt,
 }: ProjectCardProps) {

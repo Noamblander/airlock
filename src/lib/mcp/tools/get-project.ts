@@ -117,7 +117,7 @@ async function getProjectDetails(
     slug: project.slug,
     description: project.description,
     framework: project.framework,
-    url: project.vercelUrl,
+    url: project.deployUrl,
     status: project.status,
     files: latestDeploy?.filesSnapshot || {},
     env_vars: secretAssociations.map((s) => s.name),

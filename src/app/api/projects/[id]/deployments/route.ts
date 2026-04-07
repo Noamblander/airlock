@@ -16,7 +16,7 @@ export async function GET(
       id: deployments.id,
       status: deployments.status,
       url: deployments.url,
-      vercelDeployId: deployments.vercelDeployId,
+      providerDeployId: deployments.providerDeployId,
       triggeredByName: users.name,
       createdAt: deployments.createdAt,
     })

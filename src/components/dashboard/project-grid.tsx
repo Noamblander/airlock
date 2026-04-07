@@ -73,7 +73,7 @@ export function ProjectGrid() {
               description={p.description}
               framework={p.framework}
               status={p.status}
-              vercelUrl={p.vercelUrl}
+              deployUrl={p.deployUrl}
               authorName={p.authorName}
               updatedAt={p.updatedAt}
             />

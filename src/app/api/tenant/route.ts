@@ -15,8 +15,12 @@ export async function GET() {
     slug: tenant.slug,
     domain: tenant.domain,
     authProvider: tenant.authProvider,
-    vercelTeamId: tenant.vercelTeamId,
-    hasVercelToken: !!tenant.vercelApiToken,
+    cloudProvider: tenant.cloudProvider,
+    cloudTeamId: tenant.cloudTeamId,
+    hasCloudToken: !!tenant.cloudApiToken,
+    cloudConfig: tenant.cloudConfig,
+    dbProvider: tenant.dbProvider,
+    dbConfig: tenant.dbConfig,
     plan: tenant.plan,
     createdAt: tenant.createdAt,
   });
@@ -24,8 +28,12 @@ export async function GET() {
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
-  vercelTeamId: z.string().optional(),
-  vercelApiToken: z.string().optional(),
+  cloudProvider: z.enum(["vercel", "aws", "cloudflare", "netlify"]).optional(),
+  cloudTeamId: z.string().optional(),
+  cloudApiToken: z.string().optional(),
+  cloudConfig: z.record(z.string(), z.unknown()).optional(),
+  dbProvider: z.enum(["postgres", "mysql", "mongodb"]).optional().nullable(),
+  dbConfig: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function PATCH(request: Request) {
@@ -34,11 +42,15 @@ export async function PATCH(request: Request) {
 
   const updates: Record<string, unknown> = {};
   if (body.name) updates.name = body.name;
-  if (body.vercelTeamId) updates.vercelTeamId = body.vercelTeamId;
-  if (body.vercelApiToken) {
-    const { encrypted } = encrypt(body.vercelApiToken);
-    updates.vercelApiToken = encrypted;
+  if (body.cloudProvider) updates.cloudProvider = body.cloudProvider;
+  if (body.cloudTeamId) updates.cloudTeamId = body.cloudTeamId;
+  if (body.cloudApiToken) {
+    const { encrypted } = encrypt(body.cloudApiToken);
+    updates.cloudApiToken = encrypted;
   }
+  if (body.cloudConfig) updates.cloudConfig = body.cloudConfig;
+  if (body.dbProvider !== undefined) updates.dbProvider = body.dbProvider;
+  if (body.dbConfig) updates.dbConfig = body.dbConfig;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json(tenant);
@@ -55,8 +67,12 @@ export async function PATCH(request: Request) {
     name: updated.name,
     slug: updated.slug,
     domain: updated.domain,
-    vercelTeamId: updated.vercelTeamId,
-    hasVercelToken: !!updated.vercelApiToken,
+    cloudProvider: updated.cloudProvider,
+    cloudTeamId: updated.cloudTeamId,
+    hasCloudToken: !!updated.cloudApiToken,
+    cloudConfig: updated.cloudConfig,
+    dbProvider: updated.dbProvider,
+    dbConfig: updated.dbConfig,
     plan: updated.plan,
   });
 }

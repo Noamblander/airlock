@@ -6,7 +6,7 @@ import { orchestrateDeploy } from "@/lib/deploy/orchestrator";
 export function registerDeployTool(server: McpServer) {
   server.tool(
     "deploy",
-    "Publishes code to a new or existing Vercel project. Use when user says 'publish this', 'deploy', or 'ship it'.",
+    "Publishes code to the configured cloud provider. Use when user says 'publish this', 'deploy', or 'ship it'.",
     {
       project_name: z
         .string()

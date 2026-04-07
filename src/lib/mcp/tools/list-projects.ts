@@ -38,7 +38,7 @@ export function registerListProjectsTool(server: McpServer) {
           slug: projects.slug,
           description: projects.description,
           framework: projects.framework,
-          url: projects.vercelUrl,
+          url: projects.deployUrl,
           status: projects.status,
           authorName: users.name,
           createdAt: projects.createdAt,

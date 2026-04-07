@@ -1,0 +1,81 @@
+import { next } from "@vercel/edge";
+import * as jose from "jose";
+
+const PLATFORM_URL = "{{PLATFORM_URL}}";
+const TENANT_SLUG = "{{TENANT_SLUG}}";
+const JWT_SECRET = "{{JWT_SECRET}}";
+
+export default async function middleware(request: Request) {
+  const url = new URL(request.url);
+
+  // Skip auth for static assets and API health checks
+  if (
+    url.pathname.startsWith("/_next/") ||
+    url.pathname.startsWith("/favicon") ||
+    url.pathname === "/api/health"
+  ) {
+    return next();
+  }
+
+  // Check for session cookie
+  const cookies = parseCookies(request.headers.get("cookie") || "");
+  const token = cookies["org-ai-session"];
+
+  if (token) {
+    try {
+      const secret = new TextEncoder().encode(JWT_SECRET);
+      await jose.jwtVerify(token, secret);
+      return next();
+    } catch {
+      // Token invalid or expired, redirect to login
+    }
+  }
+
+  // Check for one-time token in query params (from auth callback)
+  const oneTimeToken = url.searchParams.get("_oat");
+  if (oneTimeToken) {
+    try {
+      // Exchange one-time token for session
+      const exchangeRes = await fetch(
+        `${PLATFORM_URL}/api/auth/exchange-token`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: oneTimeToken }),
+        }
+      );
+
+      if (exchangeRes.ok) {
+        const { sessionToken, expiresIn } = await exchangeRes.json();
+        // Remove _oat from URL and set cookie
+        url.searchParams.delete("_oat");
+        const response = new Response(null, {
+          status: 302,
+          headers: {
+            Location: url.toString(),
+            "Set-Cookie": `org-ai-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${expiresIn}`,
+          },
+        });
+        return response;
+      }
+    } catch {
+      // Exchange failed, redirect to login
+    }
+  }
+
+  // Redirect to platform login
+  const redirectUrl = encodeURIComponent(request.url);
+  return Response.redirect(
+    `${PLATFORM_URL}/auth/published-app-login?tenant=${TENANT_SLUG}&redirect=${redirectUrl}`,
+    302
+  );
+}
+
+function parseCookies(cookieHeader: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  for (const pair of cookieHeader.split(";")) {
+    const [key, ...rest] = pair.trim().split("=");
+    if (key) cookies[key] = rest.join("=");
+  }
+  return cookies;
+}

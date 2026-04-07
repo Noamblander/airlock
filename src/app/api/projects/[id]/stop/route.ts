@@ -3,8 +3,9 @@ import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 import { projects, tenants } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { deleteDeployment } from "@/lib/deploy/vercel";
 import { decrypt } from "@/lib/secrets/vault";
+import { getProvider } from "@/lib/deploy/providers/registry";
+import type { CloudProvider } from "@/lib/deploy/providers/types";
 
 export async function POST(
   _request: Request,
@@ -27,13 +28,17 @@ export async function POST(
     return NextResponse.json({ error: "Project is already stopped" }, { status: 400 });
   }
 
-  // Delete Vercel deployment
-  if (project.vercelProjectId && tenant.vercelApiToken && tenant.vercelTeamId) {
+  if (project.providerProjectId && tenant.cloudApiToken && tenant.cloudTeamId) {
     try {
-      const token = decrypt(tenant.vercelApiToken);
-      await deleteDeployment(project.vercelProjectId, tenant.vercelTeamId, token);
+      const cloudProvider = (tenant.cloudProvider || "vercel") as CloudProvider;
+      const provider = getProvider(cloudProvider);
+      const token = decrypt(tenant.cloudApiToken);
+      await provider.deleteDeployment(project.providerProjectId, {
+        token,
+        teamId: tenant.cloudTeamId,
+      });
     } catch {
-      // Continue even if Vercel deletion fails
+      // Continue even if provider deletion fails
     }
   }
 

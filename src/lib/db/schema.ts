@@ -13,8 +13,12 @@ export const tenants = pgTable("tenants", {
   slug: text("slug").notNull().unique(),
   domain: text("domain").notNull(),
   authProvider: text("auth_provider").notNull().default("google"),
-  vercelTeamId: text("vercel_team_id"),
-  vercelApiToken: text("vercel_api_token"), // encrypted
+  cloudProvider: text("cloud_provider").notNull().default("vercel"),
+  cloudTeamId: text("cloud_team_id"),
+  cloudApiToken: text("cloud_api_token"),
+  cloudConfig: jsonb("cloud_config").$type<Record<string, unknown>>().default({}),
+  dbProvider: text("db_provider"),
+  dbConfig: jsonb("db_config").$type<Record<string, unknown>>().default({}),
   plan: text("plan").notNull().default("free"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -60,8 +64,8 @@ export const projects = pgTable("projects", {
   slug: text("slug").notNull(),
   description: text("description").default(""),
   framework: text("framework").notNull().default("static"), // "nextjs" | "vite" | "static"
-  vercelProjectId: text("vercel_project_id"),
-  vercelUrl: text("vercel_url"),
+  providerProjectId: text("provider_project_id"),
+  deployUrl: text("deploy_url"),
   status: text("status").notNull().default("live"), // "live" | "stopped"
   dbSchemaName: text("db_schema_name"),
   createdBy: uuid("created_by").references(() => users.id),
@@ -81,7 +85,7 @@ export const deployments = pgTable("deployments", {
   projectId: uuid("project_id")
     .notNull()
     .references(() => projects.id),
-  vercelDeployId: text("vercel_deploy_id"),
+  providerDeployId: text("provider_deploy_id"),
   status: text("status").notNull().default("success"), // "success" | "failed"
   url: text("url"),
   filesSnapshot: jsonb("files_snapshot"), // Record<string, string>

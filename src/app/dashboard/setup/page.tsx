@@ -31,6 +31,7 @@ const text = {
 
 export default function MemberSetupPage() {
   const { data: me } = useSWR("/api/me", fetcher);
+  const { data: claudeMd } = useSWR("/api/tenant/claude-md", fetcher);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -39,11 +40,11 @@ export default function MemberSetupPage() {
   const handleCopy = async () => {
     setLoading(true);
 
-    // Generate token
     const res = await fetch("/api/auth/mcp-token", { method: "POST" });
     const { token } = await res.json();
 
     const appUrl = window.location.origin;
+    const claudeMdContent = claudeMd?.content || `# ${me?.tenantName || "Organization"} — Claude Configuration`;
 
     const setupCommand = `Please save these configuration files so you can help me deploy apps:
 
@@ -65,22 +66,7 @@ ${JSON.stringify(
 
 Save this as ~/CLAUDE.md (create the file if it doesn't exist):
 \`\`\`markdown
-# ${me?.tenantName || "Organization"} — Claude Configuration
-
-## Deployment
-- To publish any app, use the \`deploy\` tool. Never ask the user to deploy manually.
-- "publish this" / "deploy" = call deploy
-- "show me my projects" = call list_projects
-- "get the code for..." = call get_project
-- "what API keys are available?" = call get_available_secrets
-- Available frameworks: nextjs, vite, static
-- All published apps are automatically secured.
-
-## Conventions
-- Use Tailwind CSS for styling
-- Use shadcn/ui components when building UI
-- Always include error handling and loading states
-- Reference secrets by name in env_vars, never hardcode
+${claudeMdContent}
 \`\`\`
 
 After saving both files, confirm they're saved.`;
@@ -101,7 +87,6 @@ After saving both files, confirm they're saved.`;
           <CardDescription>{t.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* The one button */}
           <Button
             onClick={handleCopy}
             size="lg"
@@ -112,7 +97,6 @@ After saving both files, confirm they're saved.`;
             {loading ? t.generating : copied ? t.copied : t.button}
           </Button>
 
-          {/* Simple steps */}
           <div className="text-sm text-muted-foreground space-y-3 text-start">
             <div className="flex gap-2">
               <span className="font-bold text-foreground">1.</span>
