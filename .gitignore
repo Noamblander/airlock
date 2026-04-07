@@ -32,6 +32,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# superpowers
+.superpowers/
+
+# private drafts
+docs/social-posts.md
 
 # vercel
 .vercel

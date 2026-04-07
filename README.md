@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<p align="center">
+  <h1 align="center">Airlock</h1>
+  <p align="center">
+    The open-source platform that lets anyone in your org deploy AI-built apps to the cloud — no DevOps needed.
+  </p>
+</p>
 
-## Getting Started
+<p align="center">
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#the-problem">The Problem</a> ·
+  <a href="#how-it-works">How It Works</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## The Problem
+
+AI coding tools like Claude Code, Lovable, and Base44 let anyone build full applications in hours. But there's a gap: **deploying and sharing those apps still requires DevOps knowledge.**
+
+Product managers build interactive specs. Marketing creates dashboards. Teams automate workflows with AI agents. But when it comes time to actually ship — to get a live URL they can share — they hit a wall. They need someone to set up hosting, configure databases, manage API keys, and handle deployments.
+
+**Airlock bridges that gap.** DevOps sets up the infrastructure once. After that, anyone on the team can deploy through their AI coding tool — just say "deploy this" and it's live.
+
+## How It Works
+
+```
+┌─────────────────┐     MCP Protocol     ┌──────────────┐     Vercel API     ┌─────────────┐
+│  Claude Code /  │ ──────────────────▶  │   Airlock  │ ──────────────▶   │   Vercel    │
+│  AI Tool        │                      │   Platform   │                    │   (live)    │
+└─────────────────┘                      └──────────────┘                    └─────────────┘
+                                               │
+                                    ┌──────────┴──────────┐
+                                    │  Supabase (auth +   │
+                                    │  Postgres + secrets) │
+                                    └─────────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Admin sets up once** — connects Vercel, configures API keys, invites team members
+2. **Members connect Claude Code** — one-click copy-paste of MCP connection settings
+3. **Build and deploy** — tell Claude "build me a dashboard and deploy it" — done
+4. **Track everything** — admin dashboard shows all projects, deployments, and usage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quick Start
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
 
-## Learn More
+- [Node.js](https://nodejs.org/) 18+
+- A [Supabase](https://supabase.com/) project (free tier works)
+- A [Vercel](https://vercel.com/) account with a team
 
-To learn more about Next.js, take a look at the following resources:
+### Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Clone the repo
+git clone https://github.com/your-org/airlock.git
+cd airlock
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Install dependencies
+npm install
 
-## Deploy on Vercel
+# Start the dev server
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open `http://localhost:3000` — the app will guide you through:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Infrastructure setup** (`/setup`) — enter your Supabase credentials and database URL. Airlock runs migrations automatically.
+2. **Organization onboarding** (`/onboarding`) — set your company name, connect Vercel, and optionally add API secrets (like OpenAI keys).
+3. **Invite your team** — from the admin dashboard, invite members and generate setup messages you can send via Slack/email.
+4. **Members connect** — each member copies their connection settings into Claude Code with one click. That's it.
+
+### Environment Variables
+
+Airlock manages its own `.env.local` through the setup UI. The key variables:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase public anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret for signing MCP auth tokens |
+
+## Features
+
+### For Admins / DevOps
+- **One-time infrastructure setup** — connect Supabase and Vercel, configure once, done
+- **Secrets vault** — securely store API keys (OpenAI, Stripe, etc.) that all projects can reference by name
+- **Member management** — invite users, generate onboarding messages, track activity
+- **Project oversight** — dashboard showing all deployed projects, their status, and deployment history
+- **Security built-in** — Row Level Security policies, encrypted secrets, auto-injected auth on published apps
+
+### For Team Members
+- **Zero config deployment** — one-click setup, then just tell Claude "deploy this"
+- **Personal project dashboard** — see all your published apps, their URLs, deployment history
+- **MCP-powered** — works natively with Claude Code through the Model Context Protocol
+- **Framework support** — deploy Next.js, Vite, or static sites
+
+### MCP Tools
+
+Airlock exposes these tools to AI coding agents via MCP:
+
+| Tool | Description |
+|------|-------------|
+| `deploy` | Publish code to a new or existing Vercel project |
+| `list_projects` | Browse existing projects with optional filters |
+| `get_project` | Get full project details and source code for modification |
+| `get_available_secrets` | List available API keys (names only, never values) |
+
+## Architecture
+
+Built with:
+
+- **[Next.js](https://nextjs.org/) 16** — App Router, Server Components, Server Actions
+- **[Supabase](https://supabase.com/)** — Authentication (Google + email/password) and PostgreSQL database
+- **[Drizzle ORM](https://orm.drizzle.team/)** — Type-safe database access with migration support
+- **[Vercel API](https://vercel.com/docs/rest-api)** — Deployment orchestration, project management, environment variables
+- **[MCP (Model Context Protocol)](https://modelcontextprotocol.io/)** — Standard protocol for AI tool integration
+- **[shadcn/ui](https://ui.shadcn.com/)** — Component library with Tailwind CSS
+- **[Tailwind CSS](https://tailwindcss.com/) v4** — Styling
+
+### Database Schema
+
+Key tables: `tenants`, `users`, `projects`, `deployments`, `secrets`, `project_secrets`, `agents`, `usage_events` — all with multi-tenant isolation via `tenant_id` and Row Level Security.
+
+### Security Model
+
+- All published apps get auth middleware injected automatically
+- API secrets are encrypted at rest
+- MCP tokens are JWTs scoped to user + tenant
+- Supabase RLS policies enforce tenant isolation at the database level
+
+## Contributing
+
+Contributions are welcome! This is an early-stage project and there's a lot to build.
+
+Some areas where help is needed:
+
+- **Additional cloud providers** — AWS, GCP, Cloudflare Pages support
+- **More AI tool integrations** — beyond Claude Code
+- **Usage analytics and billing** — per-project cost tracking
+- **Custom domains** — for published apps
+- **Template marketplace** — pre-built app templates
+
+## License
+
+MIT

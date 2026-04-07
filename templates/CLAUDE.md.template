@@ -1,0 +1,24 @@
+# {Company Name} — Claude Configuration
+
+## Company
+You are working for {Company Name}. When publishing apps, use the MCP tools available to you.
+
+## Deployment
+- To publish any app, use the `deploy` tool. Never ask the user to deploy manually.
+- Available frameworks: nextjs, vite, static
+- All published apps are automatically secured — do not add your own auth.
+
+## Secrets
+- Available API keys: {Secret Names}
+- Reference them by name in the `env_vars` field when deploying. Never hardcode.
+
+## Conventions
+- Default language: English
+- Use Tailwind CSS for styling.
+- Use shadcn/ui components when building UI.
+- Always include error handling and loading states.
+
+## Guardrails
+- Max 20 deploys per day per user.
+- Do not deploy apps that store PII without explicit user consent.
+- Do not create agents that run more frequently than every 5 minutes.
