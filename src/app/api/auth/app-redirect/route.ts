@@ -59,6 +59,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/dashboard?error=project_not_found`);
   }
 
+  if (project.status === "stopped") {
+    return NextResponse.redirect(`${origin}/dashboard/projects/${projectId}?error=project_stopped`);
+  }
+
   const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
   const oneTimeToken = await new SignJWT({
     userId: userRecord.id,

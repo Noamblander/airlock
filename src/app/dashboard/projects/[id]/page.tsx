@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { DeployHistory } from "@/components/dashboard/deploy-history";
 import { AppPreview } from "@/components/dashboard/app-preview";
 import { StopProjectButton } from "./stop-button";
+import { RefreshScreenshotButton } from "./refresh-screenshot-button";
 
 export default async function ProjectDetailPage({
   params,
@@ -52,7 +53,7 @@ export default async function ProjectDetailPage({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {project.deployUrl && (
+          {project.deployUrl && project.status === "live" && (
             <a
               href={`/api/auth/app-redirect?projectId=${project.id}`}
               target="_blank"
@@ -76,10 +77,19 @@ export default async function ProjectDetailPage({
             </a>
           )}
           {project.status === "live" && (
+            <RefreshScreenshotButton projectId={project.id} />
+          )}
+          {project.status === "live" && (
             <StopProjectButton projectId={project.id} />
           )}
         </div>
       </div>
+
+      {project.status === "stopped" && (
+        <div className="rounded-lg border border-muted bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          This project has been stopped and is no longer accessible. Redeploy it via Claude to bring it back online.
+        </div>
+      )}
 
       {project.deployUrl && project.status === "live" && (
         <AppPreview projectId={project.id} deployUrl={project.deployUrl} />

@@ -46,3 +46,4 @@ docs/social-posts.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*.local
