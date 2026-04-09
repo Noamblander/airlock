@@ -49,6 +49,14 @@ export async function POST(request: Request) {
     const thumbnailSql = readFileSync(thumbnailPath, "utf-8");
     await sql.unsafe(thumbnailSql);
 
+    // Add project sharing (visibility + project_shares table)
+    const sharingPath = join(
+      process.cwd(),
+      "supabase/migrations/0005_project_sharing.sql"
+    );
+    const sharingSql = readFileSync(sharingPath, "utf-8");
+    await sql.unsafe(sharingSql);
+
     await sql.end();
 
     return NextResponse.json({ success: true });

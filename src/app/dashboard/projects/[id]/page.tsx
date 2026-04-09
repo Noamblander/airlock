@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DeployHistory } from "@/components/dashboard/deploy-history";
 import { AppPreview } from "@/components/dashboard/app-preview";
+import { SharingDialog } from "@/components/dashboard/sharing-dialog";
 import { StopProjectButton } from "./stop-button";
 import { RefreshScreenshotButton } from "./refresh-screenshot-button";
 
@@ -76,6 +77,7 @@ export default async function ProjectDetailPage({
               </svg>
             </a>
           )}
+          <SharingDialog projectId={project.id} deployUrl={project.deployUrl} />
           {project.status === "live" && (
             <RefreshScreenshotButton projectId={project.id} />
           )}

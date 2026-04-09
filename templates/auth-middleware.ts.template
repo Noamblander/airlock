@@ -4,6 +4,7 @@ import * as jose from "jose";
 const PLATFORM_URL = "{{PLATFORM_URL}}";
 const TENANT_SLUG = "{{TENANT_SLUG}}";
 const JWT_SECRET = "{{JWT_SECRET}}";
+const VISIBILITY = "{{VISIBILITY}}";
 
 export default async function middleware(request: Request) {
   const url = new URL(request.url);
@@ -14,6 +15,10 @@ export default async function middleware(request: Request) {
     url.pathname.startsWith("/favicon") ||
     url.pathname === "/api/health"
   ) {
+    return next();
+  }
+
+  if (VISIBILITY === "link") {
     return next();
   }
 

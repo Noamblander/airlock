@@ -123,6 +123,17 @@ export async function orchestrateDeploy(
   // Fix known-bad dependency versions before deploying
   files = fixDependencies(files, payload.framework);
 
+  // Look up existing project visibility for middleware injection
+  const projectSlug = payload.project_name.toLowerCase().replace(/\s+/g, "-");
+  const [existingProjectForVis] = await db
+    .select({ visibility: projects.visibility })
+    .from(projects)
+    .where(
+      and(eq(projects.tenantId, ctx.tenantId), eq(projects.slug, projectSlug))
+    )
+    .limit(1);
+  const projectVisibility = existingProjectForVis?.visibility ?? "organization";
+
   // Inject auth middleware
   const tenantConfig = {
     platformUrl: process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL!,
@@ -133,11 +144,9 @@ export async function orchestrateDeploy(
     files,
     tenantConfig,
     payload.framework,
-    cloudProvider
+    cloudProvider,
+    projectVisibility
   );
-
-  // Create or get project via provider
-  const projectSlug = payload.project_name.toLowerCase().replace(/\s+/g, "-");
   let providerProject;
   try {
     providerProject = await provider.createProject(
@@ -338,12 +347,22 @@ export async function orchestrateDeploy(
 
   if (appUrl) {
     const internalSecret = process.env.INTERNAL_API_SECRET || process.env.JWT_SECRET;
-    setTimeout(() => {
-      fetch(`${appUrl}/api/projects/${projectId}/screenshot`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${internalSecret}` },
-      }).catch(() => {});
-    }, 15000);
+    const captureWithRetry = async (attempt: number) => {
+      try {
+        const res = await fetch(`${appUrl}/api/projects/${projectId}/screenshot`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${internalSecret}` },
+        });
+        if (!res.ok && attempt < 3) {
+          setTimeout(() => captureWithRetry(attempt + 1), 30000);
+        }
+      } catch {
+        if (attempt < 3) {
+          setTimeout(() => captureWithRetry(attempt + 1), 30000);
+        }
+      }
+    };
+    setTimeout(() => captureWithRetry(1), 90000);
   }
 
   return {

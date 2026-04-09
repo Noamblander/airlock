@@ -68,6 +68,7 @@ export const projects = pgTable("projects", {
   deployUrl: text("deploy_url"),
   thumbnailUrl: text("thumbnail_url"),
   status: text("status").notNull().default("live"), // "live" | "stopped"
+  visibility: text("visibility").notNull().default("organization"), // "private" | "organization" | "link"
   dbSchemaName: text("db_schema_name"),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -122,6 +123,20 @@ export const projectSecrets = pgTable("project_secrets", {
   secretId: uuid("secret_id")
     .notNull()
     .references(() => secrets.id),
+  grantedAt: timestamp("granted_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const projectShares = pgTable("project_shares", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  grantedBy: uuid("granted_by").references(() => users.id),
   grantedAt: timestamp("granted_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

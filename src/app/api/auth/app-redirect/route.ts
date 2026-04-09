@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db/client";
-import { users, tenants, projects } from "@/lib/db/schema";
+import { users, tenants, projects, projectShares } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { SignJWT } from "jose";
 
@@ -63,6 +63,36 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/dashboard/projects/${projectId}?error=project_stopped`);
   }
 
+  if (project.visibility === "private") {
+    const isCreator = project.createdBy === userRecord.id;
+    const isAdmin = userRecord.role === "admin";
+    if (!isCreator && !isAdmin) {
+      const [share] = await db
+        .select()
+        .from(projectShares)
+        .where(
+          and(
+            eq(projectShares.projectId, projectId),
+            eq(projectShares.userId, userRecord.id)
+          )
+        )
+        .limit(1);
+      if (!share) {
+        return NextResponse.redirect(
+          `${origin}/dashboard/projects/${projectId}?error=no_access`
+        );
+      }
+    }
+  }
+
+  const deployUrl = project.deployUrl.startsWith("https://")
+    ? project.deployUrl
+    : `https://${project.deployUrl}`;
+
+  if (project.visibility === "link") {
+    return NextResponse.redirect(deployUrl);
+  }
+
   const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
   const oneTimeToken = await new SignJWT({
     userId: userRecord.id,
@@ -74,10 +104,6 @@ export async function GET(request: Request) {
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("30s")
     .sign(secret);
-
-  const deployUrl = project.deployUrl.startsWith("https://")
-    ? project.deployUrl
-    : `https://${project.deployUrl}`;
 
   const targetUrl = new URL(deployUrl);
   targetUrl.searchParams.set("_oat", oneTimeToken);

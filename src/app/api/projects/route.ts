@@ -31,6 +31,7 @@ export async function GET(request: Request) {
         deployUrl: projects.deployUrl,
         thumbnailUrl: projects.thumbnailUrl,
         status: projects.status,
+        visibility: projects.visibility,
         folderId: projects.folderId,
         authorName: users.name,
         createdBy: projects.createdBy,

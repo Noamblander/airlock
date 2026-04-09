@@ -7,7 +7,8 @@ export function injectAuthMiddleware(
   files: Record<string, string>,
   tenantConfig: TenantConfig,
   framework: Framework,
-  cloudProvider: CloudProvider = "vercel"
+  cloudProvider: CloudProvider = "vercel",
+  visibility: string = "organization"
 ): Record<string, string> {
   const templateName =
     cloudProvider === "vercel"
@@ -20,7 +21,8 @@ export function injectAuthMiddleware(
   template = template
     .replace(/\{\{PLATFORM_URL\}\}/g, tenantConfig.platformUrl)
     .replace(/\{\{TENANT_SLUG\}\}/g, tenantConfig.tenantSlug)
-    .replace(/\{\{JWT_SECRET\}\}/g, tenantConfig.jwtSecret);
+    .replace(/\{\{JWT_SECRET\}\}/g, tenantConfig.jwtSecret)
+    .replace(/\{\{VISIBILITY\}\}/g, visibility);
 
   const result = { ...files };
 
