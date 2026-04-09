@@ -53,7 +53,7 @@ export default async function middleware(request: Request) {
           status: 302,
           headers: {
             Location: url.toString(),
-            "Set-Cookie": `org-ai-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${expiresIn}`,
+            "Set-Cookie": `org-ai-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${expiresIn}`,
           },
         });
         return response;

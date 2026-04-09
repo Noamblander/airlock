@@ -49,7 +49,7 @@ export async function middleware(request) {
           path: "/",
           httpOnly: true,
           secure: true,
-          sameSite: "lax",
+          sameSite: "none",
           maxAge: expiresIn,
         });
         return response;
