@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 import { projects, users, deployments } from "@/lib/db/schema";
-import { eq, and, ilike, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, ilike, desc, sql, inArray, isNull } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
@@ -10,10 +10,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const folderId = searchParams.get("folderId");
 
     const conditions = [eq(projects.tenantId, tenant.id)];
     if (status) conditions.push(eq(projects.status, status));
     if (search) conditions.push(ilike(projects.name, `%${search}%`));
+    if (folderId === "root") {
+      conditions.push(isNull(projects.folderId));
+    } else if (folderId) {
+      conditions.push(eq(projects.folderId, folderId));
+    }
 
     const projectRows = await db
       .select({
@@ -25,6 +31,7 @@ export async function GET(request: Request) {
         deployUrl: projects.deployUrl,
         thumbnailUrl: projects.thumbnailUrl,
         status: projects.status,
+        folderId: projects.folderId,
         authorName: users.name,
         createdBy: projects.createdBy,
         createdAt: projects.createdAt,

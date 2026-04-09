@@ -24,7 +24,13 @@ const updateSchema = z.object({
 
 export async function PATCH(request: Request) {
   const { user } = await requireAuth();
-  const body = updateSchema.parse(await request.json());
+
+  let body;
+  try {
+    body = updateSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
 
   const [updated] = await db
     .update(users)

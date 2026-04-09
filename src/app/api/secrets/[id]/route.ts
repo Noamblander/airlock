@@ -41,7 +41,13 @@ export async function PATCH(
 ) {
   const { tenant } = await requireAdmin();
   const { id } = await params;
-  const body = rotateSchema.parse(await request.json());
+
+  let body;
+  try {
+    body = rotateSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input. A non-empty value is required." }, { status: 400 });
+  }
 
   const { encrypted, keyVersion } = encrypt(body.value);
 

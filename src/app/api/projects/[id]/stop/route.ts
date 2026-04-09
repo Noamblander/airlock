@@ -28,17 +28,21 @@ export async function POST(
     return NextResponse.json({ error: "Project is already stopped" }, { status: 400 });
   }
 
-  if (project.providerProjectId && tenant.cloudApiToken && tenant.cloudTeamId) {
+  if (project.providerProjectId && tenant.cloudApiToken) {
     try {
       const cloudProvider = (tenant.cloudProvider || "vercel") as CloudProvider;
       const provider = getProvider(cloudProvider);
       const token = decrypt(tenant.cloudApiToken);
-      await provider.deleteDeployment(project.providerProjectId, {
+      await provider.deleteProject(project.providerProjectId, {
         token,
         teamId: tenant.cloudTeamId,
       });
-    } catch {
-      // Continue even if provider deletion fails
+    } catch (err) {
+      console.error("Provider project deletion failed:", err);
+      return NextResponse.json(
+        { error: `Failed to stop project on ${tenant.cloudProvider || "vercel"}: ${err instanceof Error ? err.message : "Unknown error"}` },
+        { status: 502 }
+      );
     }
   }
 

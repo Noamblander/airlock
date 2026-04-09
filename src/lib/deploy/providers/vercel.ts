@@ -185,6 +185,25 @@ export class VercelProvider implements DeployProvider {
     }
   }
 
+  async deleteProject(
+    projectId: string,
+    config: ProviderConfig
+  ): Promise<void> {
+    const res = await vercelFetch(
+      `/v9/projects/${projectId}`,
+      config.token,
+      config.teamId,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok && res.status !== 404) {
+      const err = await res.json();
+      throw new Error(
+        `Failed to delete project: ${err.error?.message || JSON.stringify(err)}`
+      );
+    }
+  }
+
   getDeployUrl(deployment: ProviderDeployment): string {
     return `https://${deployment.url}`;
   }

@@ -18,20 +18,24 @@ export default async function ProjectDetailPage({
   const { tenant } = await requireAuth();
   const { id } = await params;
 
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.id, id), eq(projects.tenantId, tenant.id)))
-    .limit(1);
+  const [projectResult, deployStatsResult] = await Promise.all([
+    db
+      .select()
+      .from(projects)
+      .where(and(eq(projects.id, id), eq(projects.tenantId, tenant.id)))
+      .limit(1),
+    db
+      .select({ total: count(deployments.id) })
+      .from(deployments)
+      .where(eq(deployments.projectId, id)),
+  ]);
+
+  const [project] = projectResult;
+  const [deployStats] = deployStatsResult;
 
   if (!project) {
     notFound();
   }
-
-  const [deployStats] = await db
-    .select({ total: count(deployments.id) })
-    .from(deployments)
-    .where(eq(deployments.projectId, id));
 
   return (
     <div className="space-y-6">

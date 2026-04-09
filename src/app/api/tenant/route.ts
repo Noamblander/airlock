@@ -38,7 +38,13 @@ const updateSchema = z.object({
 
 export async function PATCH(request: Request) {
   const { tenant } = await requireAdmin();
-  const body = updateSchema.parse(await request.json());
+
+  let body;
+  try {
+    body = updateSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
 
   const updates: Record<string, unknown> = {};
   if (body.name) updates.name = body.name;

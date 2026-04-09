@@ -18,6 +18,11 @@ export const vercelHandlers = [
     });
   }),
 
+  // PATCH project (SSO protection disable, etc.)
+  http.patch("https://api.vercel.com/v9/projects/:id", () => {
+    return HttpResponse.json({ id: "prj_test", ssoProtection: null });
+  }),
+
   // POST create deployment
   http.post("https://api.vercel.com/v13/deployments", async ({ request }) => {
     const body = (await request.json()) as { name: string };
@@ -35,6 +40,11 @@ export const vercelHandlers = [
 
   // DELETE deployment
   http.delete("https://api.vercel.com/v13/deployments/:id", () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // DELETE project
+  http.delete("https://api.vercel.com/v9/projects/:id", () => {
     return new HttpResponse(null, { status: 204 });
   }),
 ];

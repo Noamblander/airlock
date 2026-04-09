@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,39 +48,57 @@ export default function SettingsPage() {
     if (cloudTeamId) body.cloudTeamId = cloudTeamId;
     if (cloudApiToken) body.cloudApiToken = cloudApiToken;
 
-    await fetch("/api/tenant", {
+    const res = await fetch("/api/tenant", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
     setSaving(false);
-    mutate();
+
+    if (res.ok) {
+      toast.success("Settings saved");
+      mutate();
+    } else {
+      const err = await res.json().catch(() => null);
+      toast.error(err?.error || "Failed to save settings");
+    }
   };
 
   const handleCloudProviderChange = async (value: string | null) => {
     if (!value) return;
-    await fetch("/api/tenant", {
+    const res = await fetch("/api/tenant", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cloudProvider: value }),
     });
-    mutate();
+    if (res.ok) {
+      toast.success("Cloud provider updated");
+      mutate();
+    } else {
+      toast.error("Failed to update cloud provider");
+    }
   };
 
   const handleDbProviderChange = async (value: string | null) => {
     if (!value) return;
-    await fetch("/api/tenant", {
+    const res = await fetch("/api/tenant", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dbProvider: value === "none" ? null : value }),
     });
-    mutate();
+    if (res.ok) {
+      toast.success("Database provider updated");
+      mutate();
+    } else {
+      toast.error("Failed to update database provider");
+    }
   };
 
   const handleCopyClaudeMd = () => {
     if (claudeMd?.content) {
       navigator.clipboard.writeText(claudeMd.content);
+      toast.success("Copied to clipboard");
     }
   };
 

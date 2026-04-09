@@ -186,6 +186,28 @@ export class CloudflareProvider implements DeployProvider {
     }
   }
 
+  async deleteProject(
+    projectId: string,
+    config: ProviderConfig
+  ): Promise<void> {
+    const acctId = accountId(config);
+
+    const res = await cfFetch(
+      `/accounts/${acctId}/pages/projects/${projectId}`,
+      config,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok && res.status !== 404) {
+      const err = await res.json();
+      throw new Error(
+        `Failed to delete Cloudflare Pages project: ${
+          err.errors?.[0]?.message || JSON.stringify(err)
+        }`
+      );
+    }
+  }
+
   getDeployUrl(deployment: ProviderDeployment): string {
     const url = deployment.url;
     return url.startsWith("https://") ? url : `https://${url}`;

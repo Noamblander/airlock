@@ -26,7 +26,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = setupSchema.parse(await request.json());
+  let body;
+  try {
+    body = setupSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input. All Supabase credentials and database URL are required." }, { status: 400 });
+  }
   const envPath = join(process.cwd(), ".env.local");
 
   // Generate encryption key and JWT secret if not already set

@@ -154,6 +154,22 @@ export class AwsProvider implements DeployProvider {
     }
   }
 
+  async deleteProject(
+    projectId: string,
+    config: ProviderConfig
+  ): Promise<void> {
+    const res = await amplifyFetch(`/apps/${projectId}`, config, {
+      method: "DELETE",
+    });
+
+    if (!res.ok && res.status !== 404) {
+      const err = await res.json();
+      throw new Error(
+        `Failed to delete AWS Amplify app: ${err.message || JSON.stringify(err)}`
+      );
+    }
+  }
+
   getDeployUrl(deployment: ProviderDeployment): string {
     return `https://${deployment.url}`;
   }

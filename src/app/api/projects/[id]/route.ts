@@ -52,6 +52,7 @@ export async function GET(
 const updateSchema = z.object({
   description: z.string().optional(),
   name: z.string().optional(),
+  folderId: z.string().uuid().nullable().optional(),
 });
 
 export async function PATCH(
@@ -60,7 +61,13 @@ export async function PATCH(
 ) {
   const { tenant } = await requireAuth();
   const { id } = await params;
-  const body = updateSchema.parse(await request.json());
+
+  let body;
+  try {
+    body = updateSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
 
   const [project] = await db
     .select()

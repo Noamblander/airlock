@@ -35,7 +35,13 @@ const createSchema = z.object({
 
 export async function POST(request: Request) {
   const { tenant, user } = await requireAdmin();
-  const body = createSchema.parse(await request.json());
+
+  let body;
+  try {
+    body = createSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input. Name must be uppercase with underscores (e.g. OPENAI_API_KEY) and value is required." }, { status: 400 });
+  }
 
   const { encrypted, keyVersion } = encrypt(body.value);
 

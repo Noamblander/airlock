@@ -188,6 +188,24 @@ export class NetlifyProvider implements DeployProvider {
     }
   }
 
+  async deleteProject(
+    projectId: string,
+    config: ProviderConfig
+  ): Promise<void> {
+    const res = await netlifyFetch(
+      `/sites/${projectId}`,
+      config,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok && res.status !== 404) {
+      const err = await res.json();
+      throw new Error(
+        `Failed to delete Netlify site: ${err.message || JSON.stringify(err)}`
+      );
+    }
+  }
+
   getDeployUrl(deployment: ProviderDeployment): string {
     const url = deployment.url;
     return url.startsWith("https://") ? url : `https://${url}`;

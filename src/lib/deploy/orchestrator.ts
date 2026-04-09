@@ -7,7 +7,7 @@ import {
   usageEvents,
   tenants,
 } from "@/lib/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { scanForSecrets } from "@/lib/secrets/scanner";
 import { decrypt } from "@/lib/secrets/vault";
 import { getProvider } from "./providers/registry";
@@ -74,6 +74,7 @@ export async function orchestrateDeploy(
         .select()
         .from(deployments)
         .where(eq(deployments.projectId, existingProject.id))
+        .orderBy(desc(deployments.createdAt))
         .limit(1);
 
       const existingFiles =
@@ -210,104 +211,124 @@ export async function orchestrateDeploy(
 
   const deployUrl = provider.getDeployUrl(providerDeployment);
 
-  // Upsert project record
-  const [existingProject] = await db
-    .select()
-    .from(projects)
-    .where(
-      and(
-        eq(projects.tenantId, ctx.tenantId),
-        eq(projects.slug, projectSlug)
-      )
-    )
-    .limit(1);
-
   let projectId: string;
-  if (existingProject) {
-    await db
-      .update(projects)
-      .set({
-        providerProjectId: providerProject.id,
-        deployUrl: providerDeployment.url,
-        status: "live",
-        framework: payload.framework,
-        description: payload.description || existingProject.description,
-        updatedAt: new Date(),
-      })
-      .where(eq(projects.id, existingProject.id));
-    projectId = existingProject.id;
-  } else {
-    const [newProject] = await db
-      .insert(projects)
-      .values({
-        tenantId: ctx.tenantId,
-        name: payload.project_name,
-        slug: projectSlug,
-        description: payload.description || "",
-        framework: payload.framework,
-        providerProjectId: providerProject.id,
-        deployUrl: providerDeployment.url,
-        status: "live",
-        createdBy: ctx.userId,
-      })
-      .returning();
-    projectId = newProject.id;
-  }
+  let deploymentId: string;
 
-  // Store deployment
-  const [deployment] = await db
-    .insert(deployments)
-    .values({
-      tenantId: ctx.tenantId,
-      projectId,
-      providerDeployId: providerDeployment.id,
-      status: "success",
-      url: deployUrl,
-      filesSnapshot: files,
-      triggeredBy: ctx.userId,
-    })
-    .returning();
-
-  // Store project_secrets associations
-  if (payload.env_vars && payload.env_vars.length > 0) {
-    const secretRecords = await db
-      .select()
-      .from(secrets)
-      .where(
-        and(
-          eq(secrets.tenantId, ctx.tenantId),
-          inArray(secrets.name, payload.env_vars)
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [existingProject] = await tx
+        .select()
+        .from(projects)
+        .where(
+          and(
+            eq(projects.tenantId, ctx.tenantId),
+            eq(projects.slug, projectSlug)
+          )
         )
-      );
+        .limit(1);
 
-    await db
-      .delete(projectSecrets)
-      .where(eq(projectSecrets.projectId, projectId));
+      let txProjectId: string;
+      if (existingProject) {
+        await tx
+          .update(projects)
+          .set({
+            providerProjectId: providerProject.id,
+            deployUrl: providerDeployment.url,
+            status: "live",
+            framework: payload.framework,
+            description: payload.description || existingProject.description,
+            updatedAt: new Date(),
+          })
+          .where(eq(projects.id, existingProject.id));
+        txProjectId = existingProject.id;
+      } else {
+        const [newProject] = await tx
+          .insert(projects)
+          .values({
+            tenantId: ctx.tenantId,
+            name: payload.project_name,
+            slug: projectSlug,
+            description: payload.description || "",
+            framework: payload.framework,
+            providerProjectId: providerProject.id,
+            deployUrl: providerDeployment.url,
+            status: "live",
+            createdBy: ctx.userId,
+          })
+          .returning();
+        txProjectId = newProject.id;
+      }
 
-    if (secretRecords.length > 0) {
-      await db.insert(projectSecrets).values(
-        secretRecords.map((s) => ({
+      const [deployment] = await tx
+        .insert(deployments)
+        .values({
           tenantId: ctx.tenantId,
-          projectId,
-          secretId: s.id,
-        }))
-      );
-    }
-  }
+          projectId: txProjectId,
+          providerDeployId: providerDeployment.id,
+          status: "success",
+          url: deployUrl,
+          filesSnapshot: files,
+          triggeredBy: ctx.userId,
+        })
+        .returning();
 
-  // Log usage event
-  await db.insert(usageEvents).values({
-    tenantId: ctx.tenantId,
-    projectId,
-    userId: ctx.userId,
-    eventType: "deploy",
-    metadata: {
-      framework: payload.framework,
-      cloudProvider,
-      fileCount: Object.keys(files).length,
-      totalSize,
-    },
-  });
+      if (payload.env_vars && payload.env_vars.length > 0) {
+        const secretRecords = await tx
+          .select()
+          .from(secrets)
+          .where(
+            and(
+              eq(secrets.tenantId, ctx.tenantId),
+              inArray(secrets.name, payload.env_vars)
+            )
+          );
+
+        await tx
+          .delete(projectSecrets)
+          .where(eq(projectSecrets.projectId, txProjectId));
+
+        if (secretRecords.length > 0) {
+          await tx.insert(projectSecrets).values(
+            secretRecords.map((s) => ({
+              tenantId: ctx.tenantId,
+              projectId: txProjectId,
+              secretId: s.id,
+            }))
+          );
+        }
+      }
+
+      await tx.insert(usageEvents).values({
+        tenantId: ctx.tenantId,
+        projectId: txProjectId,
+        userId: ctx.userId,
+        eventType: "deploy",
+        metadata: {
+          framework: payload.framework,
+          cloudProvider,
+          fileCount: Object.keys(files).length,
+          totalSize,
+        },
+      });
+
+      return { projectId: txProjectId, deploymentId: deployment.id };
+    });
+
+    projectId = result.projectId;
+    deploymentId = result.deploymentId;
+  } catch (dbErr) {
+    console.error("DB transaction failed after successful deploy, attempting provider cleanup:", dbErr);
+    try {
+      await provider.deleteProject(providerProject.id, providerConfig);
+    } catch (cleanupErr) {
+      console.error("Provider cleanup also failed:", cleanupErr);
+    }
+    return {
+      error: true,
+      code: "DB_WRITE_FAILED",
+      message: `Deployment succeeded on ${cloudProvider} but failed to save the record. The provider deployment has been cleaned up. Please try again.`,
+    };
+  }
 
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
@@ -326,6 +347,6 @@ export async function orchestrateDeploy(
     dashboardUrl: appUrl ? `${appUrl}/dashboard/projects/${projectId}` : undefined,
     status: "live",
     projectId,
-    deploymentId: deployment.id,
+    deploymentId,
   };
 }

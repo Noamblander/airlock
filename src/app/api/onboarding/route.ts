@@ -48,58 +48,65 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Check if tenant already exists (from a previous attempt)
     let [tenant] = await db
       .select()
       .from(tenants)
       .where(eq(tenants.slug, body.slug))
       .limit(1);
 
-    if (!tenant) {
-      // Create new tenant
-      const encryptedToken = body.cloudApiToken
-        ? encrypt(body.cloudApiToken).encrypted
-        : null;
+    if (tenant) {
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(
+          and(eq(users.tenantId, tenant.id), eq(users.email, authUser.email))
+        )
+        .limit(1);
 
-      [tenant] = await db
-        .insert(tenants)
-        .values({
-          name: body.companyName,
-          slug: body.slug,
-          domain: body.domain,
-          cloudProvider: body.cloudProvider,
-          cloudTeamId: body.cloudTeamId ?? null,
-          cloudApiToken: encryptedToken,
-          cloudConfig: body.cloudConfig ?? {},
-          dbProvider: body.dbProvider ?? null,
-          dbConfig: body.dbConfig ?? {},
-        })
-        .returning();
+      if (!existingUser) {
+        return NextResponse.json(
+          { error: "This organization slug is already taken. Please choose a different one." },
+          { status: 409 }
+        );
+      }
+
+      return NextResponse.json({
+        tenantId: tenant.id,
+        slug: tenant.slug,
+      });
     }
 
-    // Check if user already exists for this tenant
-    let [user] = await db
-      .select()
-      .from(users)
-      .where(
-        and(eq(users.tenantId, tenant.id), eq(users.email, authUser.email))
-      )
-      .limit(1);
+    const encryptedToken = body.cloudApiToken
+      ? encrypt(body.cloudApiToken).encrypted
+      : null;
 
-    if (!user) {
-      [user] = await db
-        .insert(users)
-        .values({
-          tenantId: tenant.id,
-          email: authUser.email,
-          name:
-            authUser.user_metadata?.full_name ||
-            authUser.email.split("@")[0],
-          role: "admin",
-          authProviderId: authUser.id,
-        })
-        .returning();
-    }
+    [tenant] = await db
+      .insert(tenants)
+      .values({
+        name: body.companyName,
+        slug: body.slug,
+        domain: body.domain,
+        cloudProvider: body.cloudProvider,
+        cloudTeamId: body.cloudTeamId ?? null,
+        cloudApiToken: encryptedToken,
+        cloudConfig: body.cloudConfig ?? {},
+        dbProvider: body.dbProvider ?? null,
+        dbConfig: body.dbConfig ?? {},
+      })
+      .returning();
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        tenantId: tenant.id,
+        email: authUser.email,
+        name:
+          authUser.user_metadata?.full_name ||
+          authUser.email.split("@")[0],
+        role: "admin",
+        authProviderId: authUser.id,
+      })
+      .returning();
 
     // Create secrets (skip empty ones)
     const validSecrets = (body.secrets || []).filter(

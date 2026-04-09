@@ -60,5 +60,10 @@ export interface DeployProvider {
     config: ProviderConfig
   ): Promise<void>;
 
+  deleteProject(
+    projectId: string,
+    config: ProviderConfig
+  ): Promise<void>;
+
   getDeployUrl(deployment: ProviderDeployment): string;
 }

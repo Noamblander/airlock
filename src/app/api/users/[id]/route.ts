@@ -15,7 +15,13 @@ export async function PATCH(
 ) {
   const { tenant } = await requireAdmin();
   const { id } = await params;
-  const body = updateSchema.parse(await request.json());
+
+  let body;
+  try {
+    body = updateSchema.parse(await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid input. Role must be 'admin' or 'member'." }, { status: 400 });
+  }
 
   const [updated] = await db
     .update(users)
