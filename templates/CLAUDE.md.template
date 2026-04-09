@@ -17,6 +17,12 @@ You are working for {Company Name}. When publishing apps, use the MCP tools avai
 - Available API keys: {Secret Names}
 - Reference them by name in the `env_vars` field when deploying. Never hardcode.
 
+## AI / Agent Capabilities
+- If OPENAI_API_KEY is listed above, you can build apps with AI agents using the OpenAI SDK.
+- Use the `openai` npm package (latest) for chat completions, function calling, and agent patterns.
+- Create API routes (e.g., `/api/chat` or `/api/agent`) that call the OpenAI API server-side.
+- Never expose the API key to the client — always call from server-side routes.
+
 ## Conventions
 - Default language: English
 - Use Tailwind CSS for styling.
