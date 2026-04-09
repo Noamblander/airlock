@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  const appUrl = new URL(request.url).origin;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

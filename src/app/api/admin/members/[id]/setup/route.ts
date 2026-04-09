@@ -43,7 +43,7 @@ export async function POST(
     .where(eq(secrets.tenantId, tenant.id));
   const secretNames = secretList.map((s) => s.name);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = new URL(_request.url).origin;
 
   // Generate .mcp.json
   const mcpJson = {

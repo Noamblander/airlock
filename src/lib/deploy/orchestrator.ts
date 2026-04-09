@@ -120,7 +120,7 @@ export async function orchestrateDeploy(
 
   // Inject auth middleware
   const tenantConfig = {
-    platformUrl: process.env.NEXT_PUBLIC_APP_URL!,
+    platformUrl: process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL!,
     tenantSlug: tenant.slug,
     jwtSecret: process.env.JWT_SECRET!,
   };

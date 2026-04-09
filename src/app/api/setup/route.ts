@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: body.supabaseAnonKey,
     SUPABASE_SERVICE_ROLE_KEY: body.supabaseServiceRoleKey,
     DATABASE_URL: body.databaseUrl,
-    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    NEXT_PUBLIC_APP_URL: new URL(request.url).origin,
   };
 
   // Only add these if not already set

@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { randomBytes } from "crypto";
 
 export async function GET() {
   const { tenant } = await requireAuth();
@@ -49,7 +50,47 @@ export async function POST(request: Request) {
     );
   }
 
-  // Create user record
+  // Generate a temp password for the invited user
+  const tempPassword = randomBytes(6).toString("base64url");
+
+  // Create or update Supabase auth account via admin API
+  const adminClient = createSupabaseAdminClient();
+
+  let authUserId: string | undefined;
+
+  // Try creating the auth user
+  const { data: createData, error: createError } =
+    await adminClient.auth.admin.createUser({
+      email: body.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name: body.name },
+    });
+
+  if (createError) {
+    if (createError.message.includes("already been registered")) {
+      // User exists in Supabase — update their password instead
+      const { data: listData } = await adminClient.auth.admin.listUsers();
+      const existingAuth = listData?.users?.find(
+        (u) => u.email === body.email
+      );
+      if (existingAuth) {
+        await adminClient.auth.admin.updateUserById(existingAuth.id, {
+          password: tempPassword,
+        });
+        authUserId = existingAuth.id;
+      }
+    } else {
+      return NextResponse.json(
+        { error: `Failed to create auth account: ${createError.message}` },
+        { status: 500 }
+      );
+    }
+  } else {
+    authUserId = createData.user?.id;
+  }
+
+  // Create user record in DB
   const [user] = await db
     .insert(users)
     .values({
@@ -57,6 +98,7 @@ export async function POST(request: Request) {
       email: body.email,
       name: body.name,
       role: body.role,
+      authProviderId: authUserId,
     })
     .returning({
       id: users.id,
@@ -66,20 +108,10 @@ export async function POST(request: Request) {
       createdAt: users.createdAt,
     });
 
-  // Send invite email via Supabase (uses service role for admin API)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  try {
-    const adminClient = createSupabaseAdminClient();
-    await adminClient.auth.admin.inviteUserByEmail(body.email, {
-      redirectTo: `${appUrl}/api/auth/callback`,
-      data: {
-        full_name: body.name,
-      },
-    });
-  } catch {
-    // Invite email is best-effort — user record is already created
-    // They can still sign in manually via the login page
-  }
+  const appUrl = new URL(request.url).origin;
 
-  return NextResponse.json(user, { status: 201 });
+  return NextResponse.json(
+    { ...user, tempPassword, loginUrl: `${appUrl}/login` },
+    { status: 201 }
+  );
 }

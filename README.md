@@ -14,6 +14,12 @@
   <a href="#contributing">Contributing</a>
 </p>
 
+<p align="center">
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FNoamblander%2Fairlock&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,DATABASE_URL,ENCRYPTION_KEY,ENCRYPTION_KEY_VERSION,JWT_SECRET&envDescription=Supabase%20and%20database%20credentials%20needed%20to%20run%20Airlock.%20See%20the%20README%20for%20details.&envLink=https%3A%2F%2Fgithub.com%2FNoamblander%2Fairlock%23environment-variables&project-name=airlock&repository-name=airlock">
+    <img src="https://vercel.com/button" alt="Deploy with Vercel" />
+  </a>
+</p>
+
 ---
 
 ## The Problem
@@ -55,7 +61,7 @@ Product managers build interactive specs. Marketing creates dashboards. Teams au
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/airlock.git
+git clone https://github.com/Noamblander/airlock.git
 cd airlock
 
 # Install dependencies
