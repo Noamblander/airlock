@@ -41,6 +41,14 @@ export async function POST(request: Request) {
     const providerSql = readFileSync(providerPath, "utf-8");
     await sql.unsafe(providerSql);
 
+    // Add thumbnail_url to projects
+    const thumbnailPath = join(
+      process.cwd(),
+      "supabase/migrations/0004_thumbnail_url.sql"
+    );
+    const thumbnailSql = readFileSync(thumbnailPath, "utf-8");
+    await sql.unsafe(thumbnailSql);
+
     await sql.end();
 
     return NextResponse.json({ success: true });

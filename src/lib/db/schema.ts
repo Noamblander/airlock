@@ -66,6 +66,7 @@ export const projects = pgTable("projects", {
   framework: text("framework").notNull().default("static"), // "nextjs" | "vite" | "static"
   providerProjectId: text("provider_project_id"),
   deployUrl: text("deploy_url"),
+  thumbnailUrl: text("thumbnail_url"),
   status: text("status").notNull().default("live"), // "live" | "stopped"
   dbSchemaName: text("db_schema_name"),
   createdBy: uuid("created_by").references(() => users.id),

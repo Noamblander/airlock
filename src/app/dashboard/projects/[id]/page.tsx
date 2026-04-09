@@ -1,12 +1,13 @@
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
-import { projects } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { projects, deployments } from "@/lib/db/schema";
+import { eq, and, count } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DeployHistory } from "@/components/dashboard/deploy-history";
+import { AppPreview } from "@/components/dashboard/app-preview";
 import { StopProjectButton } from "./stop-button";
 
 export default async function ProjectDetailPage({
@@ -27,6 +28,11 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
+  const [deployStats] = await db
+    .select({ total: count(deployments.id) })
+    .from(deployments)
+    .where(eq(deployments.projectId, id));
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -44,7 +50,7 @@ export default async function ProjectDetailPage({
         <div className="flex items-center gap-2">
           {project.deployUrl && (
             <a
-              href={project.deployUrl.startsWith("https://") ? project.deployUrl : `https://${project.deployUrl}`}
+              href={`/api/auth/app-redirect?projectId=${project.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-accent"
@@ -71,7 +77,11 @@ export default async function ProjectDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {project.deployUrl && project.status === "live" && (
+        <AppPreview projectId={project.id} deployUrl={project.deployUrl} />
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -80,6 +90,16 @@ export default async function ProjectDetailPage({
           </CardHeader>
           <CardContent>
             <Badge variant="outline">{project.framework}</Badge>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Deployments
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-sm font-semibold">{deployStats?.total ?? 0}</span>
           </CardContent>
         </Card>
         <Card>

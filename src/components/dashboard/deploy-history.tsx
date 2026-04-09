@@ -68,7 +68,7 @@ export function DeployHistory({ projectId }: { projectId: string }) {
               <TableCell>
                 {d.url ? (
                   <a
-                    href={d.url.startsWith("https://") ? d.url : `https://${d.url}`}
+                    href={`/api/auth/app-redirect?projectId=${projectId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline"

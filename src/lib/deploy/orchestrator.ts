@@ -311,6 +311,16 @@ export async function orchestrateDeploy(
 
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
+  if (appUrl) {
+    const internalSecret = process.env.INTERNAL_API_SECRET || process.env.JWT_SECRET;
+    setTimeout(() => {
+      fetch(`${appUrl}/api/projects/${projectId}/screenshot`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${internalSecret}` },
+      }).catch(() => {});
+    }, 15000);
+  }
+
   return {
     url: deployUrl,
     dashboardUrl: appUrl ? `${appUrl}/dashboard/projects/${projectId}` : undefined,

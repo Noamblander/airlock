@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
-import { projects, users } from "@/lib/db/schema";
-import { eq, and, ilike, desc } from "drizzle-orm";
+import { projects, users, deployments } from "@/lib/db/schema";
+import { eq, and, ilike, desc, count, max } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { tenant } = await requireAuth();
@@ -22,15 +22,20 @@ export async function GET(request: Request) {
       description: projects.description,
       framework: projects.framework,
       deployUrl: projects.deployUrl,
+      thumbnailUrl: projects.thumbnailUrl,
       status: projects.status,
       authorName: users.name,
       createdBy: projects.createdBy,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
+      deploymentCount: count(deployments.id),
+      lastDeployedAt: max(deployments.createdAt),
     })
     .from(projects)
     .leftJoin(users, eq(projects.createdBy, users.id))
+    .leftJoin(deployments, eq(projects.id, deployments.projectId))
     .where(and(...conditions))
+    .groupBy(projects.id, users.name)
     .orderBy(desc(projects.updatedAt));
 
   return NextResponse.json(results);

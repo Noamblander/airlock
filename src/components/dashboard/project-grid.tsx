@@ -65,17 +65,20 @@ export function ProjectGrid() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects?.map((p: Record<string, string>) => (
+          {projects?.map((p: Record<string, string | number | null>) => (
             <ProjectCard
-              key={p.id}
-              id={p.id}
-              name={p.name}
-              description={p.description}
-              framework={p.framework}
-              status={p.status}
-              deployUrl={p.deployUrl}
-              authorName={p.authorName}
-              updatedAt={p.updatedAt}
+              key={p.id as string}
+              id={p.id as string}
+              name={p.name as string}
+              description={p.description as string | null}
+              framework={p.framework as string}
+              status={p.status as string}
+              deployUrl={p.deployUrl as string | null}
+              thumbnailUrl={p.thumbnailUrl as string | null}
+              authorName={p.authorName as string | null}
+              updatedAt={p.updatedAt as string | null}
+              deploymentCount={Number(p.deploymentCount) || 0}
+              lastDeployedAt={p.lastDeployedAt as string | null}
             />
           ))}
         </div>
