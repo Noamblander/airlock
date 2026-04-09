@@ -1,41 +1,36 @@
-import { next } from "@vercel/edge";
-import * as jose from "jose";
+import { NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 
 const PLATFORM_URL = "{{PLATFORM_URL}}";
 const TENANT_SLUG = "{{TENANT_SLUG}}";
 const JWT_SECRET = "{{JWT_SECRET}}";
 
-export default async function middleware(request: Request) {
-  const url = new URL(request.url);
+export async function middleware(request) {
+  const { pathname } = request.nextUrl;
 
-  // Skip auth for static assets and API health checks
   if (
-    url.pathname.startsWith("/_next/") ||
-    url.pathname.startsWith("/favicon") ||
-    url.pathname === "/api/health"
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon") ||
+    pathname === "/api/health"
   ) {
-    return next();
+    return NextResponse.next();
   }
 
-  // Check for session cookie
-  const cookies = parseCookies(request.headers.get("cookie") || "");
-  const token = cookies["org-ai-session"];
+  const token = request.cookies.get("org-ai-session")?.value;
 
   if (token) {
     try {
       const secret = new TextEncoder().encode(JWT_SECRET);
-      await jose.jwtVerify(token, secret);
-      return next();
+      await jwtVerify(token, secret);
+      return NextResponse.next();
     } catch {
       // Token invalid or expired, redirect to login
     }
   }
 
-  // Check for one-time token in query params (from auth callback)
-  const oneTimeToken = url.searchParams.get("_oat");
+  const oneTimeToken = request.nextUrl.searchParams.get("_oat");
   if (oneTimeToken) {
     try {
-      // Exchange one-time token for session
       const exchangeRes = await fetch(
         `${PLATFORM_URL}/api/auth/exchange-token`,
         {
@@ -47,14 +42,15 @@ export default async function middleware(request: Request) {
 
       if (exchangeRes.ok) {
         const { sessionToken, expiresIn } = await exchangeRes.json();
-        // Remove _oat from URL and set cookie
+        const url = request.nextUrl.clone();
         url.searchParams.delete("_oat");
-        const response = new Response(null, {
-          status: 302,
-          headers: {
-            Location: url.toString(),
-            "Set-Cookie": `org-ai-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${expiresIn}`,
-          },
+        const response = NextResponse.redirect(url);
+        response.cookies.set("org-ai-session", sessionToken, {
+          path: "/",
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          maxAge: expiresIn,
         });
         return response;
       }
@@ -63,19 +59,10 @@ export default async function middleware(request: Request) {
     }
   }
 
-  // Redirect to platform login
   const redirectUrl = encodeURIComponent(request.url);
-  return Response.redirect(
-    `${PLATFORM_URL}/auth/published-app-login?tenant=${TENANT_SLUG}&redirect=${redirectUrl}`,
-    302
+  return NextResponse.redirect(
+    new URL(
+      `${PLATFORM_URL}/auth/published-app-login?tenant=${TENANT_SLUG}&redirect=${redirectUrl}`
+    )
   );
-}
-
-function parseCookies(cookieHeader: string): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  for (const pair of cookieHeader.split(";")) {
-    const [key, ...rest] = pair.trim().split("=");
-    if (key) cookies[key] = rest.join("=");
-  }
-  return cookies;
 }

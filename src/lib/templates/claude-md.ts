@@ -45,8 +45,11 @@ export function generateClaudeMd(tenant: Tenant, secretNames: string[]): string 
   const dbSection = tenant.dbProvider ? (DB_SECTIONS[tenant.dbProvider] || "") : "";
   const dbConventions = tenant.dbProvider ? (DB_CONVENTIONS[tenant.dbProvider] || "") : "";
 
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+
   template = template.replace(/\{Company Name\}/g, tenant.name);
   template = template.replace("{Cloud Provider}", cloudLabel);
+  template = template.replace("{App URL}", appUrl);
   template = template.replace(
     "{Secret Names}",
     secretNames.length > 0 ? secretNames.join(", ") : "(none configured yet)"

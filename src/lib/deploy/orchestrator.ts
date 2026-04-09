@@ -309,8 +309,11 @@ export async function orchestrateDeploy(
     },
   });
 
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+
   return {
     url: deployUrl,
+    dashboardUrl: appUrl ? `${appUrl}/dashboard/projects/${projectId}` : undefined,
     status: "live",
     projectId,
     deploymentId: deployment.id,

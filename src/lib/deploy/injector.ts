@@ -25,9 +25,16 @@ export function injectAuthMiddleware(
   const result = { ...files };
 
   if (framework === "nextjs") {
-    result["middleware.ts"] = template;
+    result["middleware.js"] = template;
   } else {
     result["_middleware.js"] = template;
+  }
+
+  if (result["package.json"]) {
+    const pkg = JSON.parse(result["package.json"]);
+    pkg.dependencies = pkg.dependencies || {};
+    pkg.dependencies["jose"] = "^5";
+    result["package.json"] = JSON.stringify(pkg, null, 2);
   }
 
   return result;

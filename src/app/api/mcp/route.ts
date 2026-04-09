@@ -3,7 +3,7 @@ import { createMcpServer } from "@/lib/mcp/server";
 import { authenticateMcpRequest } from "@/lib/mcp/auth";
 import { mcpContext } from "@/lib/mcp/context";
 
-export async function POST(request: Request) {
+async function handleMcpRequest(request: Request) {
   try {
     const authCtx = await authenticateMcpRequest(request);
 
@@ -24,4 +24,16 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
+}
+
+export async function POST(request: Request) {
+  return handleMcpRequest(request);
+}
+
+export async function GET(request: Request) {
+  return handleMcpRequest(request);
+}
+
+export async function DELETE(request: Request) {
+  return handleMcpRequest(request);
 }

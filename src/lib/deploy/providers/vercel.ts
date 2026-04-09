@@ -72,7 +72,14 @@ export class VercelProvider implements DeployProvider {
       );
     }
 
-    return createRes.json();
+    const project = await createRes.json();
+
+    await vercelFetch(`/v9/projects/${project.id}`, config.token, config.teamId, {
+      method: "PATCH",
+      body: JSON.stringify({ ssoProtection: null }),
+    });
+
+    return project;
   }
 
   async deploy(

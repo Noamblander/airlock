@@ -68,12 +68,12 @@ export function DeployHistory({ projectId }: { projectId: string }) {
               <TableCell>
                 {d.url ? (
                   <a
-                    href={`https://${d.url}`}
+                    href={d.url.startsWith("https://") ? d.url : `https://${d.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline"
                   >
-                    {d.url}
+                    {d.url.replace(/^https?:\/\//, "")}
                   </a>
                 ) : (
                   "—"

@@ -12,6 +12,7 @@ export type DeployPayload = {
 
 export type DeployResult = {
   url: string;
+  dashboardUrl?: string;
   status: "live";
   projectId: string;
   deploymentId: string;
