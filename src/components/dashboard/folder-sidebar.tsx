@@ -102,10 +102,8 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Folders</span>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-6">
-              <FolderPlus className="size-3.5" />
-            </Button>
+          <DialogTrigger render={<Button variant="ghost" size="icon" className="size-6" />}>
+            <FolderPlus className="size-3.5" />
           </DialogTrigger>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -125,9 +123,7 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <DialogClose asChild>
-                  <Button variant="outline" type="button">Cancel</Button>
-                </DialogClose>
+                <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
                 <Button type="submit" disabled={!newFolderName.trim()}>Create</Button>
               </div>
             </form>
@@ -184,14 +180,8 @@ export function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSideba
                 <span className="truncate">{folder.name}</span>
               </button>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-6 opacity-0 group-hover:opacity-100 shrink-0"
-                  >
-                    <MoreHorizontal className="size-3" />
-                  </Button>
+                <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-6 opacity-0 group-hover:opacity-100 shrink-0" />}>
+                  <MoreHorizontal className="size-3" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem

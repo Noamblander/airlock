@@ -177,13 +177,15 @@ export function ProjectCard({
       {onMoveToFolder && (
         <div className="absolute top-2 left-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="inline-flex items-center justify-center size-6 rounded-md bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background"
-                onClick={(e) => e.preventDefault()}
-              >
-                <MoreVertical className="size-3" />
-              </button>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  className="inline-flex items-center justify-center size-6 rounded-md bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background"
+                  onClick={(e) => e.preventDefault()}
+                />
+              }
+            >
+              <MoreVertical className="size-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" onClick={(e) => e.preventDefault()}>
               <DropdownMenuSub>
