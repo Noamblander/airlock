@@ -37,7 +37,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/admin/:path*",
-    "/api/((?!auth|setup).*)",
+    "/api/((?!auth|setup|mcp).*)",
     "/setup/:path*",
     "/",
   ],
