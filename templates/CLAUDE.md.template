@@ -30,6 +30,17 @@ You are working for {Company Name}. When publishing apps, use the MCP tools avai
 - Always include error handling and loading states.
 {Database Conventions}
 
+## Dependency Versions (IMPORTANT)
+When creating apps, always use these exact dependency versions:
+- next: "16.2.2"
+- react / react-dom: "^19"
+- lucide-react: "^1.8.0"
+- openai: "^4.85.4"
+- clsx: "^2.1.1"
+- tailwindcss: "^4"
+- typescript: "^5"
+Do NOT use older versions from memory. These are the tested, compatible versions.
+
 ## Guardrails
 - Max 20 deploys per day per user.
 - Do not deploy apps that store PII without explicit user consent.

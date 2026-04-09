@@ -12,6 +12,7 @@ import { scanForSecrets } from "@/lib/secrets/scanner";
 import { decrypt } from "@/lib/secrets/vault";
 import { getProvider } from "./providers/registry";
 import { injectAuthMiddleware } from "./injector";
+import { fixDependencies } from "./dep-fixer";
 import type { DeployPayload, DeployResult, McpError } from "./types";
 import type { CloudProvider, ProviderConfig } from "./providers/types";
 
@@ -118,6 +119,9 @@ export async function orchestrateDeploy(
       line: first.line,
     };
   }
+
+  // Fix known-bad dependency versions before deploying
+  files = fixDependencies(files, payload.framework);
 
   // Inject auth middleware
   const tenantConfig = {
